@@ -1,0 +1,37 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Herramientas
+.pyright/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Configuración local
+.env
+
+# Base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Salidas generadas
+exports/
+
+# IDE / SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
