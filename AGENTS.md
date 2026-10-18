@@ -54,7 +54,8 @@ El razonamiento y las alternativas descartadas de estas reglas están en [`docs/
 
 - Dataclasses `@dataclass(frozen=True, slots=True)` para datos; `typing.Protocol` para contratos.
 - `StrEnum` para vocabularios cerrados (`CheckKind`, `NormId`, `DetailLevel`).
-- Funciones y clases con nombres en inglés en el código; **documentación y textos de usuario en español**.
+- **Código nuevo íntegramente en español**: identificadores (clases, funciones, variables, campos), docstrings y comentarios. El código existente en inglés (`get_settings`, `Settings`, `MainWindow`, `Base`…) no se modifica de momento.
+- Docstrings estructurados en **formato Google** (`Args:`, `Returns:`, `Raises:`, `Attributes:`), en español.
 - Comentarios solo cuando aportan; evitar comentarios que repitan el código.
 - Sin `print` para depuración; usar el logger configurado.
 
@@ -92,6 +93,7 @@ Las specs de milestones futuros se escriben **justo antes** de abordarlos, no po
 ## Documentación
 
 - [`docs/architecture.md`](docs/architecture.md) — arquitectura y decisiones de alto nivel.
+- [`docs/testing.md`](docs/testing.md) — estrategia de pruebas, organización, comandos y convenciones.
 - [`docs/decisions/`](docs/decisions/) — ADRs (contexto, decisión, alternativas, consecuencias).
 - [`docs/specs/`](docs/specs/) — especificaciones por milestone.
 

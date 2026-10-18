@@ -11,15 +11,26 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 
 ## Modelo y mecánica (domain)
 
-- [ ] `domain/units.py` — documentar la convención mm/N/MPa/N·mm y constantes de conversión.
-- [ ] `domain/model/geometry.py` — `Point`, `Contour`, `SectionGeometry(outer, holes)` y helper `rectangle(b, h)`.
-- [ ] `domain/model/materials.py` — `Concrete`, `ReinforcingSteel` (propiedades físicas).
-- [ ] `domain/model/section.py` — `ReinforcementLayer`, `Section`.
-- [ ] `domain/model/actions.py` — `InternalForces(n, m_y)`.
-- [ ] `domain/model/model.py` — `StructuralModel(section, actions)`.
+### Modelo geométrico por componentes, fases y adherencia (ADR 0007)
+
+- [x] `domain/unidades.py` — documentar la convención mm/N/MPa/N·mm y constantes de conversión.
+- [x] `domain/model/geometria.py` — `Punto`, `Contorno`, `GeometriaContorno`, helpers `rectangulo()` y `circulo()` (cordones poligonizados).
+- [x] `domain/model/materiales.py` — `Hormigon`, `AceroArmadura`, `AceroPretensado`, `modulo_elastico()` (propiedades físicas, sin ley constitutiva).
+- [x] `domain/model/seccion.py` — `CondicionAdherencia`, `ComponenteSeccion`, `Seccion`.
+- [x] `domain/model/fases.py` — `Fase`, `componentes_activos()`, `componentes_adheridos()`.
+- [x] `domain/model/acciones.py` — `EsfuerzosInternos(n, m_y, m_z)`. 
+- [x] `domain/model/modelo.py` — `ModeloEstructural(seccion, acciones, fases, fase_activa)`.
+
+### Mallado y cuadratura (ADR 0008)
+
+- [x] `domain/mechanics/mallado.py` — `Triangulo`, `mallar()` (mapbox-earcut aislado, validación de huecos).
+- [x] `domain/mechanics/integracion.py` — `EvaluacionGauss`, `ReglaCuadratura`, `Regla1Punto`, `Regla3Puntos`, `integrar()`.
+- [x] `domain/mechanics/propiedades_seccion.py` — `PropiedadesSeccion(area, y_cdg, z_cdg, i_y, i_z, i_yz)`, `propiedades_geometricas()` (malla + Gauss).
+
+### Mecánica pendiente
+
 - [ ] `domain/mechanics/laws.py` — `Protocol StressStrainLaw`.
 - [ ] `domain/mechanics/generic_laws.py` — `ElasticLaw`.
-- [ ] `domain/mechanics/section_properties.py` — `area`, `centroid_y`, `second_moment_area`.
 
 ## Contratos de comprobación (domain)
 
@@ -49,8 +60,13 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 
 ## Pruebas
 
-- [ ] `tests/unit/domain/test_section_properties.py` — área, centro, inercia (300×500).
-- [ ] `tests/unit/norms/test_eurocode_flexure.py` — ejemplo de referencia (MRd ≈ 258,0 kN·m, ratio ≈ 0,775) y pasos de traza.
+- [x] `tests/unit/domain/test_geometria.py` — validación de `Contorno`, `rectangulo()` y `circulo()`.
+- [x] `tests/unit/domain/test_seccion.py` — invariantes de `Seccion` y `ModeloEstructural`.
+- [x] `tests/unit/domain/test_fases.py` — activación por fase y por adherencia.
+- [x] `tests/unit/domain/test_mallado.py` — triangulación con/sin huecos y círculo.
+- [x] `tests/unit/domain/test_integracion.py` — reglas de cuadratura e integrales exactas.
+- [x] `tests/unit/domain/test_propiedades_seccion.py` — área, cdg e inercia (300×500, hueco y círculo).
+- [ ] `tests/unit/norms/eurocode/test_flexure.py` — ejemplo de referencia (MRd ≈ 258,0 kN·m, ratio ≈ 0,775) y pasos de traza.
 - [ ] `tests/unit/application/test_catalog.py` — resolución existente e inexistente.
 - [ ] `tests/integration/test_run_check_ce_flexure.py` — flujo completo y `CheckNotApplicable`.
 - [ ] `tests/integration/test_compare_norms.py` — una fila con una norma.

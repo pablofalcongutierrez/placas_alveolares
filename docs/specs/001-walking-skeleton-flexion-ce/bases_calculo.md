@@ -17,14 +17,14 @@ En un sistema de ejes generales, la deformación longitudinal de una fibra situa
 `(y, z)` de la sección transversal puede escribirse como:
 
 ```
-ε(x, y, z) = ε₀(x) + κ_y(x)·z − κ_z(x)·y
+ε(y, z) = ε₀ + κ_y·z − κ_z·y
 ```
 
 donde:
 
-- `ε₀(x)`: deformación del eje de la pieza.
-- `κ_y(x)`, `κ_z(x)`: curvaturas alrededor de los ejes `y` y `z` respectivamente.
-- `(x, y, z)`: coordenadas de la fibra considerada.
+- `ε₀`: deformación del eje de la pieza.
+- `κ_y`, `κ_z`: curvaturas alrededor de los ejes `y` y `z` respectivamente.
+- `(y, z)`: coordenadas de la fibra considerada.
 
 Para **flexión simple** en el plano `y-z` alrededor del eje `y`, la expresión se reduce a:
 
@@ -84,28 +84,38 @@ sistema de referencia.
 ### 2.2. Convención de signos
 
 - **Deformaciones**: positivas en tracción y negativas en compresión.
+- **Esfuerzo axil `N`**: positivo a tracción.
 - **Curvatura `κ`**: positiva cuando produce tracción en las fibras inferiores (`z < 0`) y
   compresión en las superiores (`z > 0`); es decir, curvatura de concavidad hacia arriba
   (momento flector positivo según la convención habitual de flexión simple).
+- **Momento `My`** (alrededor del eje horizontal): positivo cuando produce tracción en las
+  fibras inferiores (`z < 0`).
+- **Momento `Mz`** (alrededor del eje vertical): positivo cuando produce tracción en las fibras
+  con `y > 0`.
 - **Tensiones normales `σ`**: positivas a tracción y negativas a compresión. Para una sección
-  homogénea no fisurada sometida a flexión simple `My`, la distribución es lineal:
+  homogénea no fisurada sometida a axil y flexión biaxial, con ejes principales de inercia
+  (`I_yz = 0`), la distribución es lineal:
 
   ```
-  σ(z) = −My · z / I_y
+  σ(y, z) = N / A − My · z / I_y + Mz · y / I_z
   ```
 
-  de modo que un momento `My` positivo genera compresión en la fibra superior (`z > 0`) y tracción
-  en la inferior (`z < 0`).
+  de modo que `My` positivo comprime la fibra superior (`z > 0`) y `Mz` positivo comprime el
+  lado `y < 0`. Si los ejes no son principales (`I_yz ≠ 0`), los términos de flexión se acoplan
+  y la expresión debe resolverse con la matriz de inercia completa.
 - **Canto útil `d`**: distancia desde la fibra extrema de compresión hasta el centro de gravedad
   de la armadura a tracción.
 
 ### Vínculo con la implementación
 
-- El plano `y-z` y el sentido de los ejes se fijan en `domain/model/geometry.py`
+- El plano `y-z` y el sentido de los ejes se fijan en `domain/model/geometria.py`
   (ver [`plan.md`](plan.md#archivos-a-crear)).
-- La magnitud `My` con su signo se transporta en `InternalForces(n, m_y)` (`domain/model/actions.py`).
+- Los esfuerzos con su signo se transportan en `EsfuerzosInternos(n, m_y, m_z)`
+  (`domain/model/acciones.py`).
+- Las propiedades geométricas biaxiales (`area`, `y_cdg`, `z_cdg`, `i_y`, `i_z`, `i_yz`) se
+  calculan en `domain/mechanics/propiedades_seccion.py`.
 - La convención de unidades asociada es mm / N / MPa / N·mm
-  (ver [ADR 0004](../../decisions/0004-unidades-convencion-n-mm-mpa.md) y `domain/units.py`).
+  (ver [ADR 0004](../../decisions/0004-unidades-convencion-n-mm-mpa.md) y `domain/unidades.py`).
 
 ## 3. Leyes constitutivas y bloque rectangular
 

@@ -16,7 +16,7 @@ Se adopta una **convención coherente fija** en todo el núcleo:
 - Tensión: **MPa (N/mm²)**
 - Momento: **N·mm**
 
-Las conversiones se realizan **solo en las fronteras** (UI, importación, exportación), donde es habitual trabajar en kN y kN·m. `CalcStep.unit` transporta la etiqueta legible para los informes. La convención se documenta en `domain/units.py` con las constantes de conversión necesarias.
+Las conversiones se realizan **solo en las fronteras** (UI, importación, exportación), donde es habitual trabajar en kN y kN·m. `CalcStep.unit` transporta la etiqueta legible para los informes. La convención se documenta en `domain/unidades.py` con las constantes de conversión necesarias.
 
 ## Alternativas consideradas
 

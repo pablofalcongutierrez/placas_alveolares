@@ -24,15 +24,18 @@ src/placas_alveolares/
   __main__.py              # `python -m placas_alveolares`
   domain/
     model/                 # modelo estructural (agnóstico de norma)
-      geometry.py          #   polígonos, contornos con huecos (placas alveolares)
-      section.py           #   Section, capas de armadura, tendones
-      materials.py         #   Concrete, Steel, Strand (propiedades físicas)
-      actions.py           #   InternalForces, combinaciones, historia de cargas
-      phases.py            #   fases de construcción / puesta en carga
+      geometria.py         #   Punto, Contorno, GeometriaContorno; helpers rectangulo(), circulo()
+      materiales.py        #   Hormigon, AceroArmadura, AceroPretensado (propiedades físicas)
+      seccion.py           #   Seccion, ComponenteSeccion, CondicionAdherencia
+      acciones.py          #   EsfuerzosInternos
+      fases.py             #   Fase, activación por fase y por adherencia
+      modelo.py            #   ModeloEstructural
     mechanics/             # motores físicos (funciones puras)
+      mallado.py           #   Triangulo, mallar() (mapbox-earcut, aislado)
+      integracion.py       #   ReglaCuadratura, Regla1Punto/Regla3Puntos, integrar()
+      propiedades_seccion.py   # PropiedadesSeccion, propiedades_geometricas()
       laws.py              #   Protocolos: StressStrainLaw, CreepShrinkageModel
       generic_laws.py      #   leyes físicas: elástica, elastoplástica
-      section_properties.py
       strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
@@ -42,7 +45,7 @@ src/placas_alveolares/
       results.py           #   CheckResult (base), CalcStep
       check.py             #   Protocol Check[I, P, R], ApplicabilityIssue
       trace.py             #   TraceBuilder, DetailLevel
-    units.py               # convención de unidades del núcleo
+    unidades.py            # convención de unidades del núcleo
   norms/
     eurocode/              # implementaciones de la familia eurocódigo
     ce/                    # Código Estructural (parámetros nacionales + registro)
@@ -235,6 +238,8 @@ Una norma puede ofrecer un subconjunto de comprobaciones. `norms/en1168/` regist
 - `tests/integration`: casos de uso end-to-end y comparación entre normas.
 - `tests/acceptance`: flujos completos (UI/controladores).
 - `pyright --strict` en CI como puerta estática.
+
+Detalle completo (organización, comandos y convenciones) en [`testing.md`](testing.md).
 
 ## Roadmap
 

@@ -6,7 +6,7 @@
 ## Flujo end-to-end
 
 ```
-StructuralModel ──preparador──► FlexureInput ──┐
+ModeloEstructural ──preparador──► FlexureInput ──┐
                                                ├─► FlexureCheck.run(input, params) ─► FlexureResult (con traza)
 EurocodeParams ────────────────────────────────┘
 
@@ -21,17 +21,21 @@ RunCheck.execute(model, NormId.CE, CheckKind.FLEXURE_ULS)
 ```
 src/placas_alveolares/
   domain/
-    units.py                              # docstring de la convención + constantes (N_PER_KN, MM_PER_M)
+    unidades.py                           # docstring de la convención + constantes (N_POR_KN, MM_POR_M)
     model/
-      geometry.py                         # Point, Contour, SectionGeometry(outer, holes), rectangle()
-      materials.py                        # Concrete(fck, fcm, ecm), ReinforcingSteel(fyk, es)
-      section.py                          # ReinforcementLayer(area, depth), Section(geometry, concrete, layers)
-      actions.py                          # InternalForces(n, m_y)
-      model.py                            # StructuralModel(section, actions)
+      geometria.py                        # Punto, Contorno, GeometriaContorno(exterior, huecos)
+                                          #   helpers rectangulo() y circulo() (cordones poligonizados)
+      materiales.py                       # Hormigon(fck, fcm, ecm), AceroArmadura(fyk, es), AceroPretensado(fpk, ep)
+      seccion.py                          # CondicionAdherencia, ComponenteSeccion, Seccion
+      fases.py                            # Fase, componentes_activos(), componentes_adheridos()
+      acciones.py                         # EsfuerzosInternos(n, m_y, m_z)
+      modelo.py                           # ModeloEstructural(seccion, acciones, fases, fase_activa)
     mechanics/
+      mallado.py                          # Triangulo, mallar() (mapbox-earcut, aislado)
+      integracion.py                      # ReglaCuadratura, Regla1Punto/Regla3Puntos, integrar()
+      propiedades_seccion.py              # PropiedadesSeccion(area, y_cdg, z_cdg, i_y, i_z, i_yz)
       laws.py                             # Protocol StressStrainLaw
       generic_laws.py                     # ElasticLaw (lineal) — usado por pruebas de mecánica
-      section_properties.py               # area(), centroid_y(), second_moment_area()
     checking/
       kinds.py                            # CheckKind, NormId
       results.py                          # CalcStep, CheckResult
@@ -51,7 +55,12 @@ src/placas_alveolares/
       run_check.py                        # RunCheck + excepciones
       compare_norms.py                    # CompareNorms
 tests/
-  unit/domain/test_section_properties.py
+  unit/domain/test_geometria.py
+  unit/domain/test_seccion.py
+  unit/domain/test_fases.py
+  unit/domain/test_mallado.py
+  unit/domain/test_integracion.py
+  unit/domain/test_propiedades_seccion.py
   unit/norms/test_eurocode_flexure.py
   unit/application/test_catalog.py
   integration/test_run_check_ce_flexure.py
@@ -113,8 +122,8 @@ class FlexureResult(CheckResult):
     m_rd: float; x: float; z: float
 
 def run_flexure(data: FlexureInput, params: EurocodeParams) -> FlexureResult: ...
-def prepare_flexure(model: StructuralModel, params: EurocodeParams) -> FlexureInput: ...
-def applicability_flexure(model: StructuralModel) -> tuple[ApplicabilityIssue, ...]: ...
+def prepare_flexure(model: ModeloEstructural, params: EurocodeParams) -> FlexureInput: ...
+def applicability_flexure(model: ModeloEstructural) -> tuple[ApplicabilityIssue, ...]: ...
 ```
 
 Fórmulas a implementar (unidades N/mm/MPa; justificación teórica en
@@ -137,16 +146,16 @@ La traza emite pasos para `fcd`, `fyd`, `x`, `z`, `m_rd` con su cláusula.
 @dataclass(frozen=True)
 class CheckDescriptor:
     kind: CheckKind; norm: NormId; name: str
-    applicability: Callable[[StructuralModel], tuple[ApplicabilityIssue, ...]]
+    applicability: Callable[[ModeloEstructural], tuple[ApplicabilityIssue, ...]]
     default_params: Callable[[], object]
-    prepare_and_run: Callable[[StructuralModel, object], CheckResult]
+    prepare_and_run: Callable[[ModeloEstructural, object], CheckResult]
     run_direct: Callable[[object, object], CheckResult]
 
 def make_descriptor(
     *, kind: CheckKind, norm: NormId, name: str,
     check: Check[I, P, R],
-    prepare: Callable[[StructuralModel, P], I],
-    applicability: Callable[[StructuralModel], tuple[ApplicabilityIssue, ...]],
+    prepare: Callable[[ModeloEstructural, P], I],
+    applicability: Callable[[ModeloEstructural], tuple[ApplicabilityIssue, ...]],
     default_params: Callable[[], P],
 ) -> CheckDescriptor: ...   # cierra el tipado; 'object' queda confinado aquí
 ```
@@ -167,7 +176,7 @@ class CompareNorms:
     def execute(self, model_id: ModelId, kind: CheckKind) -> list[tuple[NormId, CheckResult]]: ...
 ```
 
-`ModelRepository` es un puerto mínimo (`get(model_id) -> StructuralModel`); para este milestone se usa un repositorio en memoria en los tests.
+`ModelRepository` es un puerto mínimo (`get(model_id) -> ModeloEstructural`); para este milestone se usa un repositorio en memoria en los tests.
 
 ## Registro en el composition root
 
@@ -186,7 +195,12 @@ Añadir otra norma = una línea aquí. Ningún caso de uso cambia.
 
 ## Estrategia de pruebas
 
-- `test_section_properties.py`: rectángulo 300×500 → `A = 150000 mm²`, centro y `I` frente a fórmulas analíticas.
+- `test_geometria.py`: validación de `Contorno` (≥3 vértices), dimensiones de `rectangulo()` y `circulo()` (polígono inscrito y validaciones).
+- `test_seccion.py`: invariante de sección no vacía, valores por defecto de `ComponenteSeccion` y validación de `fase_activa` en `ModeloEstructural`.
+- `test_fases.py`: `componentes_activos` filtra por `fase_incorporacion`; `componentes_adheridos` excluye los enfundados.
+- `test_mallado.py`: triangulación con y sin huecos, círculo poligonizado y hueco fuera del contorno.
+- `test_integracion.py`: suma de pesos por regla, integrales exactas de grado ≤ 2 y comparación 1 punto vs 3 puntos.
+- `test_propiedades_seccion.py`: rectángulo 300×500 → `A = 150000 mm²`, `y_cdg = 0`, `z_cdg = 250 mm`, `i_y = 3,125·10⁹ mm⁴`, `i_z = 1,125·10⁹ mm⁴`, `i_yz = 0`; hueco centrado; sección en L (`i_yz ≠ 0`); círculo poligonizado.
 - `test_eurocode_flexure.py`: ejemplo de referencia de `spec.md` llamando a `run_flexure` con escalares; se asertan `m_rd`, `x`, `z`, `ratio`, `passed` y la **presencia de los pasos** `fcd`, `fyd`, `x`, `z`, `m_rd`.
 - `test_catalog.py`: registro y resolución `(CE, FLEXURE_ULS)`; resolución inexistente → `None`.
 - `test_run_check_ce_flexure.py`: modelo → `RunCheck.execute` → resultado; modelo no soportado → `CheckNotApplicable` con motivo.
@@ -194,7 +208,7 @@ Añadir otra norma = una línea aquí. Ningún caso de uso cambia.
 
 ## Orden de implementación
 
-1. `domain/model` + `domain/units` + `domain/mechanics` (leyes, propiedades).
+1. `domain/model` + `domain/unidades` + `domain/mechanics` (leyes, propiedades).
 2. `domain/checking` (kinds, results, check, trace).
 3. `norms/eurocode` (params, inputs, flexure, módulo).
 4. `application/catalog` + `make_descriptor`.
