@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from placas_alveolares.domain.errores import SeccionInvalida
 from placas_alveolares.domain.model.geometria import GeometriaContorno
 from placas_alveolares.domain.model.materiales import Material
 
@@ -44,12 +45,22 @@ class ComponenteSeccion:
             defecto ``0``.
         adherencia: Condición de adherencia. Solo es relevante para componentes
             de :class:`AceroPretensado`; por defecto adherido.
+
+    Raises:
+        SeccionInvalida: Si ``fase_incorporacion`` es negativa.
     """
 
     geometria: GeometriaContorno
     material: Material
     fase_incorporacion: int = 0
     adherencia: CondicionAdherencia = CondicionAdherencia.ADHERIDO
+
+    def __post_init__(self) -> None:
+        if self.fase_incorporacion < 0:
+            raise SeccionInvalida(
+                "La fase de incorporación no puede ser negativa; se recibió "
+                f"{self.fase_incorporacion}."
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,11 +72,11 @@ class Seccion:
             independencia de la fase en que entren en servicio.
 
     Raises:
-        ValueError: Si la sección no tiene ningún componente.
+        SeccionInvalida: Si la sección no tiene ningún componente.
     """
 
     componentes: tuple[ComponenteSeccion, ...]
 
     def __post_init__(self) -> None:
         if not self.componentes:
-            raise ValueError("Una sección necesita al menos un componente.")
+            raise SeccionInvalida("Una sección necesita al menos un componente.")

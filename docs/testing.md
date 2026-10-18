@@ -152,12 +152,15 @@ def test_rectangulo_300x500() -> None:
     assert propiedades.i_y == pytest.approx(3.125e9)
 ```
 
-Usa `pytest.raises` cuando el contrato sea **rechazar una entrada inválida**:
+Usa `pytest.raises` cuando el contrato sea **rechazar una entrada inválida**, con la excepción de dominio concreta (véase [`decisions/0009-errores-tipados-por-capas.md`](decisions/0009-errores-tipados-por-capas.md)):
 
 ```python
+from placas_alveolares.domain.errores import SeccionInvalida
+
+
 def test_seccion_exige_al_menos_un_componente() -> None:
     """Una sección sin componentes no es válida."""
-    with pytest.raises(ValueError):
+    with pytest.raises(SeccionInvalida):
         Seccion(componentes=())
 ```
 

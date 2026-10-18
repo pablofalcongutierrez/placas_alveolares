@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from placas_alveolares.domain.errores import FaseInvalida
 from placas_alveolares.domain.model.seccion import (
     ComponenteSeccion,
     CondicionAdherencia,
@@ -28,10 +29,19 @@ class Fase:
     Attributes:
         indice: Orden de la fase en la secuencia constructiva (0, 1, 2…).
         nombre: Descripción legible de la fase. Por defecto vacío.
+
+    Raises:
+        FaseInvalida: Si ``indice`` es negativo.
     """
 
     indice: int
     nombre: str = ""
+
+    def __post_init__(self) -> None:
+        if self.indice < 0:
+            raise FaseInvalida(
+                f"El índice de fase no puede ser negativo; se recibió {self.indice}."
+            )
 
 
 def componentes_activos(

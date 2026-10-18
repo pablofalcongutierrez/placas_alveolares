@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from placas_alveolares.domain.errores import GeometriaInvalida
 from placas_alveolares.domain.model.geometria import (
     Contorno,
     GeometriaContorno,
@@ -17,8 +18,16 @@ from placas_alveolares.domain.model.geometria import (
 
 def test_contorno_exige_tres_vertices() -> None:
     """Un contorno con menos de tres vértices no es válido."""
-    with pytest.raises(ValueError):
+    with pytest.raises(GeometriaInvalida):
         Contorno(puntos=(Punto(y=0.0, z=0.0), Punto(y=1.0, z=0.0)))
+
+
+def test_rectangulo_exige_dimensiones_positivas() -> None:
+    """Un rectángulo con ancho o alto no positivo no es válido."""
+    with pytest.raises(GeometriaInvalida):
+        rectangulo(ancho=0.0, alto=500.0)
+    with pytest.raises(GeometriaInvalida):
+        rectangulo(ancho=300.0, alto=-10.0)
 
 
 def test_rectangulo_dimensiones() -> None:
@@ -73,7 +82,7 @@ def test_circulo_valores_por_defecto() -> None:
 
 def test_circulo_valida_radio_y_puntos() -> None:
     """Un radio no positivo o menos de tres puntos no son válidos."""
-    with pytest.raises(ValueError):
+    with pytest.raises(GeometriaInvalida):
         circulo(Punto(y=0.0, z=0.0), radio=0.0)
-    with pytest.raises(ValueError):
+    with pytest.raises(GeometriaInvalida):
         circulo(Punto(y=0.0, z=0.0), radio=1.0, n_puntos=2)

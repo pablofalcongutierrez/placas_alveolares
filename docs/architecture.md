@@ -23,6 +23,7 @@ src/placas_alveolares/
   main.py                  # entrypoint: composición + registro de normas + QApplication
   __main__.py              # `python -m placas_alveolares`
   domain/
+    errores.py             # jerarquía de errores: ErrorDominio, ErrorValidacion, ErrorCalculo
     model/                 # modelo estructural (agnóstico de norma)
       geometria.py         #   Punto, Contorno, GeometriaContorno; helpers rectangulo(), circulo()
       materiales.py        #   Hormigon, AceroArmadura, AceroPretensado (propiedades físicas)
@@ -166,9 +167,12 @@ Gestión de errores:
 | Situación | Mecanismo |
 |---|---|
 | Campo obligatorio ausente en un input | Error **de tipado** (dataclass sin valor por defecto) — Pyright |
+| Invariante de dominio incumplida | `ErrorValidacion` (`GeometriaInvalida`, `MaterialInvalido`, `SeccionInvalida`, `FaseInvalida`, `ModeloInvalido`) |
 | El modelo no tiene datos para este check | `ApplicabilityIssue`, evaluado antes de ejecutar |
 | Datos inválidos en frontera (importación, formularios) | Validación pydantic en DTOs |
-| Fallo numérico (solver no converge) | Excepción `CalculationError` capturada por el caso de uso |
+| Fallo numérico (solver no converge) | `ErrorCalculo` (p. ej. `ErrorMallado`) capturado por el caso de uso |
+
+Todas las capas comparten la raíz `ErrorDominio`: cada una define su propia base (`ErrorAplicacion`, `ErrorNorma`, `ErrorInfraestructura`, `ErrorPresentacion`) heredando de ella, de modo que la presentación puede capturar un único tipo raíz. Detalle en [`decisions/0009-errores-tipados-por-capas.md`](decisions/0009-errores-tipados-por-capas.md).
 
 ### Resultados y trazabilidad
 

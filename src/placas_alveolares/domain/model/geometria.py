@@ -21,6 +21,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from placas_alveolares.domain.errores import GeometriaInvalida
+
 _LADOS_MINIMOS = 3
 _PUNTOS_CIRCULO_POR_DEFECTO = 16
 
@@ -50,14 +52,14 @@ class Contorno:
         puntos: Vértices del contorno, en orden.
 
     Raises:
-        ValueError: Si el contorno tiene menos de tres vértices.
+        GeometriaInvalida: Si el contorno tiene menos de tres vértices.
     """
 
     puntos: tuple[Punto, ...]
 
     def __post_init__(self) -> None:
         if len(self.puntos) < _LADOS_MINIMOS:
-            raise ValueError(
+            raise GeometriaInvalida(
                 f"Un contorno necesita al menos {_LADOS_MINIMOS} vértices; "
                 f"se recibieron {len(self.puntos)}."
             )
@@ -96,7 +98,21 @@ def rectangulo(
     Returns:
         Una :class:`GeometriaContorno` rectangular sin huecos, centrada en
         ``y = y_centro`` y con base en ``z_base``.
+
+    Raises:
+        GeometriaInvalida: Si ``ancho`` o ``alto`` no son estrictamente
+            positivos.
     """
+    if ancho <= 0.0:
+        raise GeometriaInvalida(
+            "El ancho del rectángulo debe ser positivo; se recibió "
+            f"ancho={ancho}."
+        )
+    if alto <= 0.0:
+        raise GeometriaInvalida(
+            "El alto del rectángulo debe ser positivo; se recibió "
+            f"alto={alto}."
+        )
     semiancho = ancho / 2.0
     z_sup = z_base + alto
     y_izq = y_centro - semiancho
@@ -131,12 +147,13 @@ def circulo(
         Una :class:`GeometriaContorno` circular sin huecos.
 
     Raises:
-        ValueError: Si ``radio`` no es positivo o ``n_puntos`` es menor que 3.
+        GeometriaInvalida: Si ``radio`` no es positivo o ``n_puntos`` es menor
+            que 3.
     """
     if radio <= 0.0:
-        raise ValueError(f"El radio debe ser positivo; se recibió {radio}.")
+        raise GeometriaInvalida(f"El radio debe ser positivo; se recibió {radio}.")
     if n_puntos < _LADOS_MINIMOS:
-        raise ValueError(
+        raise GeometriaInvalida(
             f"Un círculo necesita al menos {_LADOS_MINIMOS} puntos; "
             f"se recibieron {n_puntos}."
         )

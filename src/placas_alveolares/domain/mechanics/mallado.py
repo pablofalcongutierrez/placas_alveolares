@@ -21,6 +21,7 @@ import mapbox_earcut
 import numpy as np
 from numpy.typing import NDArray
 
+from placas_alveolares.domain.errores import ErrorMallado, GeometriaInvalida
 from placas_alveolares.domain.model.geometria import (
     Contorno,
     GeometriaContorno,
@@ -77,12 +78,12 @@ def mallar(geometria: GeometriaContorno) -> tuple[Triangulo, ...]:
         Los triángulos del mallado, todos con área positiva.
 
     Raises:
-        ValueError: Si un hueco queda fuera del contorno exterior o si la
-            triangulación no produce ningún triángulo.
+        GeometriaInvalida: Si un hueco queda fuera del contorno exterior.
+        ErrorMallado: Si la triangulación no produce ningún triángulo.
     """
     for hueco in geometria.huecos:
         if not all(_dentro_de(p, geometria.exterior) for p in hueco.puntos):
-            raise ValueError(
+            raise GeometriaInvalida(
                 "Hay un hueco fuera del contorno exterior; revise la geometría."
             )
 
@@ -100,7 +101,7 @@ def mallar(geometria: GeometriaContorno) -> tuple[Triangulo, ...]:
         mapbox_earcut.triangulate_float64(vertices, anillos), dtype=np.int64
     )
     if indices.size == 0:
-        raise ValueError("La triangulación no ha producido ningún triángulo.")
+        raise ErrorMallado("La triangulación no ha producido ningún triángulo.")
 
     return tuple(
         Triangulo(a=puntos[int(i)], b=puntos[int(j)], c=puntos[int(k)])

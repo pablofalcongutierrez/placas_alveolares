@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from placas_alveolares.domain.errores import GeometriaInvalida
 from placas_alveolares.domain.mechanics.integracion import (
     REGLA_3_PUNTOS,
     ReglaCuadratura,
@@ -65,12 +66,14 @@ def propiedades_geometricas(
         Las propiedades geométricas de la región neta.
 
     Raises:
-        ValueError: Si el área de la región no es estrictamente positiva.
+        GeometriaInvalida: Si el área de la región no es estrictamente positiva.
     """
     malla = mallar(geometria)
     area = integrar(malla, lambda _: 1.0, regla)
     if area <= 0.0:
-        raise ValueError("El área de la región no es positiva; revise la geometría.")
+        raise GeometriaInvalida(
+            "El área de la región no es positiva; revise la geometría."
+        )
 
     y_cdg = integrar(malla, lambda punto: punto.y, regla) / area
     z_cdg = integrar(malla, lambda punto: punto.z, regla) / area

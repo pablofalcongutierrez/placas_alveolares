@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from placas_alveolares.domain.errores import GeometriaInvalida
 from placas_alveolares.domain.mechanics.integracion import REGLA_1_PUNTO
 from placas_alveolares.domain.mechanics.propiedades_seccion import (
     propiedades_geometricas,
@@ -93,7 +94,7 @@ def test_hueco_fuera_del_contorno() -> None:
         exterior=rectangulo(300.0, 500.0).exterior, huecos=(hueco,)
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(GeometriaInvalida):
         propiedades_geometricas(geometria)
 
 

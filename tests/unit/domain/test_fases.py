@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+
+from placas_alveolares.domain.errores import FaseInvalida
 from placas_alveolares.domain.model.fases import (
     Fase,
     componentes_activos,
@@ -71,3 +74,9 @@ def test_fase_valores_por_defecto() -> None:
 
     assert fase.indice == 2
     assert fase.nombre == ""
+
+
+def test_fase_exige_indice_no_negativo() -> None:
+    """El índice de una fase no puede ser negativo."""
+    with pytest.raises(FaseInvalida):
+        Fase(indice=-1)

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 
+from placas_alveolares.domain.errores import ModeloInvalido, SeccionInvalida
 from placas_alveolares.domain.model.acciones import EsfuerzosInternos
+from placas_alveolares.domain.model.fases import Fase
 from placas_alveolares.domain.model.geometria import Punto, circulo, rectangulo
 from placas_alveolares.domain.model.materiales import AceroArmadura, Hormigon
 from placas_alveolares.domain.model.modelo import ModeloEstructural
@@ -30,8 +32,18 @@ def _componentes() -> tuple[ComponenteSeccion, ...]:
 
 def test_seccion_exige_al_menos_un_componente() -> None:
     """Una sección sin componentes no es válida."""
-    with pytest.raises(ValueError):
+    with pytest.raises(SeccionInvalida):
         Seccion(componentes=())
+
+
+def test_componente_exige_fase_no_negativa() -> None:
+    """La fase de incorporación de un componente no puede ser negativa."""
+    with pytest.raises(SeccionInvalida):
+        ComponenteSeccion(
+            geometria=rectangulo(300.0, 500.0),
+            material=_hormigon(),
+            fase_incorporacion=-1,
+        )
 
 
 def test_componente_valores_por_defecto() -> None:
@@ -46,12 +58,37 @@ def test_modelo_fase_activa_debe_estar_definida() -> None:
     """La fase activa tiene que figurar entre las fases del modelo."""
     seccion = Seccion(componentes=_componentes())
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModeloInvalido):
         ModeloEstructural(
             seccion=seccion,
             acciones=EsfuerzosInternos(m_y=2.0e8),
             fase_activa=1,
         )
+
+
+def test_modelo_exige_fases_unicas() -> None:
+    """No puede haber dos fases con el mismo índice."""
+    seccion = Seccion(componentes=_componentes())
+
+    with pytest.raises(ModeloInvalido):
+        ModeloEstructural(
+            seccion=seccion,
+            acciones=EsfuerzosInternos(m_y=2.0e8),
+            fases=(Fase(0), Fase(0)),
+        )
+
+
+def test_modelo_exige_fases_de_componentes_definidas() -> None:
+    """Todo componente debe referenciar una fase declarada en el modelo."""
+    componente = ComponenteSeccion(
+        geometria=rectangulo(300.0, 500.0),
+        material=_hormigon(),
+        fase_incorporacion=1,
+    )
+    seccion = Seccion(componentes=(componente,))
+
+    with pytest.raises(ModeloInvalido):
+        ModeloEstructural(seccion=seccion, acciones=EsfuerzosInternos(m_y=2.0e8))
 
 
 def test_modelo_valido() -> None:
