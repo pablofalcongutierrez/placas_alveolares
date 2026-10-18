@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-placas-alveolares = "placas_alveolares.main:main"
+placas-alveolares = "placas_alveolares.main:principal"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/placas_alveolares"]

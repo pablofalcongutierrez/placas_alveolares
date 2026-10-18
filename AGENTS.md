@@ -54,7 +54,7 @@ El razonamiento y las alternativas descartadas de estas reglas están en [`docs/
 
 - Dataclasses `@dataclass(frozen=True, slots=True)` para datos; `typing.Protocol` para contratos.
 - `StrEnum` para vocabularios cerrados (`CheckKind`, `NormId`, `DetailLevel`).
-- **Código nuevo íntegramente en español**: identificadores (clases, funciones, variables, campos), docstrings y comentarios. El código existente en inglés (`get_settings`, `Settings`, `MainWindow`, `Base`…) no se modifica de momento.
+- **Código íntegramente en español**: identificadores (clases, funciones, variables, campos), docstrings y comentarios. Se conservan sin traducir únicamente las bases y APIs de librerías externas (`QMainWindow`, `QApplication`, `BaseSettings`, `SettingsConfigDict`, `DeclarativeBase`…) y los nombres de variables de entorno (`PA_DATABASE_URL`, `PA_LOG_LEVEL`, `PA_EXPORT_DIR`).
 - Docstrings estructurados en **formato Google** (`Args:`, `Returns:`, `Raises:`, `Attributes:`), en español.
 - Comentarios solo cuando aportan; evitar comentarios que repitan el código.
 - Sin `print` para depuración; usar el logger configurado.

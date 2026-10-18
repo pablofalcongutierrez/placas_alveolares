@@ -1,6 +1,6 @@
 """Entorno de Alembic.
 
-Usa `settings.database_url` (pydantic-settings) como fuente de la URL, de
+Usa `ajustes.url_basedatos` (pydantic-settings) como fuente de la URL, de
 modo que cambiar de SQLite a PostgreSQL solo requiere cambiar el `.env`.
 """
 
@@ -11,16 +11,16 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from placas_alveolares.infrastructure.config.settings import get_settings
-from placas_alveolares.infrastructure.persistence.base import Base
+from placas_alveolares.infrastructure.config.settings import obtener_ajustes
+from placas_alveolares.infrastructure.persistence.base import BaseDeclarativa
 
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", obtener_ajustes().url_basedatos)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = BaseDeclarativa.metadata
 
 
 def run_migrations_offline() -> None:

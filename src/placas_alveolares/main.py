@@ -10,10 +10,10 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QMainWindow
 
-from placas_alveolares.infrastructure.config.settings import get_settings
+from placas_alveolares.infrastructure.config.settings import obtener_ajustes
 
 
-class MainWindow(QMainWindow):
+class VentanaPrincipal(QMainWindow):
     """Ventana principal (placeholder para el walking skeleton)."""
 
     def __init__(self) -> None:
@@ -22,18 +22,18 @@ class MainWindow(QMainWindow):
         self.resize(1024, 700)
 
 
-def main() -> int:
+def principal() -> int:
     """Arranca la aplicación y devuelve el código de salida."""
-    settings = get_settings()
+    ajustes = obtener_ajustes()
     app = QApplication(sys.argv)
     app.setApplicationName("placas_alveolares")
-    app.setProperty("log_level", settings.log_level)
+    app.setProperty("nivel_log", ajustes.nivel_log)
 
-    window = MainWindow()
+    window = VentanaPrincipal()
     window.show()
 
     return app.exec()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(principal())
