@@ -3,32 +3,210 @@
 ## Capas y regla de dependencias
 
 ```
-presentation ─┐
-              ▼
-infrastructure ──► application ──► domain
+presentation ─────────────┐
+infrastructure ──► application ──► domain ◄── norms ◄── composition root (main/container)
 ```
 
-- `domain`: entidades, value objects, servicios y excepciones de negocio. **No depende de nada.**
-- `application`: casos de uso, DTOs y **puertos** (interfaces). Depende solo de `domain`.
+- `domain`: modelo estructural, mecánica, estados y **contratos de comprobación**. **No depende de nada.**
+- `norms`: **plugins normativos** (EC2, Código Estructural, EN 1168…). Dependen solo de `domain`. Cada norma es un paquete autocontenido.
+- `application`: catálogo de comprobaciones, casos de uso, DTOs y **puertos** (interfaces). Depende solo de `domain`. **No importa `norms`.**
 - `infrastructure`: adaptadores que implementan los puertos (SQLAlchemy, export, servicios externos), configuración y arranque. Depende de `application`/`domain`.
 - `presentation`: UI PySide y controladores (MVP). Depende de `application`.
+- `main.py` (composition root): **único** punto que importa los paquetes de normas y los registra en el catálogo.
 
-Regla: **las dependencias apuntan siempre hacia dentro** (`domain` no conoce a nadie).
+Regla: **las dependencias apuntan siempre hacia dentro**. `norms` se sitúa junto a `infrastructure` como capa de implementación (ambas realizan contratos internos); ninguna es conocida por el núcleo.
 
 ## Estructura
 
 ```
 src/placas_alveolares/
-  main.py                  # entrypoint: composición + QApplication
+  main.py                  # entrypoint: composición + registro de normas + QApplication
   __main__.py              # `python -m placas_alveolares`
-  domain/{entities,value_objects,services}, exceptions.py
-  application/{use_cases,dtos,ports}
+  domain/
+    model/                 # modelo estructural (agnóstico de norma)
+      geometry.py          #   polígonos, contornos con huecos (placas alveolares)
+      section.py           #   Section, capas de armadura, tendones
+      materials.py         #   Concrete, Steel, Strand (propiedades físicas)
+      actions.py           #   InternalForces, combinaciones, historia de cargas
+      phases.py            #   fases de construcción / puesta en carga
+    mechanics/             # motores físicos (funciones puras)
+      laws.py              #   Protocolos: StressStrainLaw, CreepShrinkageModel
+      generic_laws.py      #   leyes físicas: elástica, elastoplástica
+      section_properties.py
+      strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
+      moment_curvature.py
+      time_evolution.py    #   integración temporal con modelo inyectado
+    state/                 # StrainProfile, StressResultants, SectionState, History
+    checking/              # contratos de comprobación
+      kinds.py             #   CheckKind (vocabulario), NormId
+      results.py           #   CheckResult (base), CalcStep
+      check.py             #   Protocol Check[I, P, R], ApplicabilityIssue
+      trace.py             #   TraceBuilder, DetailLevel
+    units.py               # convención de unidades del núcleo
+  norms/
+    eurocode/              # implementaciones de la familia eurocódigo
+    ce/                    # Código Estructural (parámetros nacionales + registro)
+    ec2/                   # Eurocódigo 2 (valores recomendados)
+    en1168/                # placa alveolar: cortante específico
+    _shared/               # fórmulas normativas realmente repetidas (regla de tres)
+  application/
+    catalog.py             # CheckCatalog + descriptores
+    use_cases/             # run_check, compare_norms, analyze_section
+    dtos/  ports/
   infrastructure/{config,persistence,export,external_services}
   presentation/{views,controllers,widgets}
 migrations/                # Alembic
 resources/                 # datos estáticos
 tests/{unit,integration,acceptance}
 ```
+
+## Núcleo de cálculo seccional
+
+### Principio rector: mecánica física vs. reglas normativas
+
+> La mecánica no es normativa; las **leyes constitutivas**, los **coeficientes** y los **criterios de verificación** sí lo son.
+
+El equilibrio, la compatibilidad deformacional, la integración de tensiones sobre fibras y la evolución temporal bajo un modelo de fluencia son física común. La parábola-rectángulo, el bloque de Whitney, los coeficientes γ/φ, las fórmulas de `V_Rd,c` y los límites de fisuración son normativos. Por tanto:
+
+- Los **motores mecánicos** viven en `domain/mechanics` y reciben las leyes constitutivas **por inyección** (`StressStrainLaw`, `CreepShrinkageModel`).
+- Las **leyes normativas** viven en `norms/*/laws.py`. Las leyes físicas genéricas (elástica, elastoplástica) viven en `domain/mechanics/generic_laws.py` y permiten analizar sin ninguna norma.
+
+Detalle y alternativas en [`decisions/0001-frontera-mecanica-fisica-vs-normativa.md`](decisions/0001-frontera-mecanica-fisica-vs-normativa.md).
+
+### Conceptos y responsabilidades
+
+| Concepto | Responsabilidad | NO conoce |
+|---|---|---|
+| Modelo estructural | Geometría, materiales, armaduras, tendones, acciones, fases | Normas, comprobaciones |
+| Leyes constitutivas | σ–ε, fluencia, retracción | Secciones, esfuerzos |
+| Motores mecánicos | Propiedades, solver deformacional, M–κ, evolución temporal | De qué norma vienen las leyes |
+| Estados físicos | Resultados de análisis; entrada de comprobaciones | Normas |
+| Comprobación (Check) | Regla normativa pura: datos tipados + parámetros → resultado trazable | El modelo del proyecto, la UI |
+| Parámetros normativos | Coeficientes tipados e inmutables de una norma | Qué check los usa |
+| Entrada de check | Dataclass mínimo y específico de cada check | El modelo completo |
+| Preparador | Traduce modelo → entrada de check (invocando motores si procede) | Cómo se ejecuta el check |
+| Resultado y traza | `ratio`, veredicto, cláusula y pasos de cálculo | Normas concretas |
+| Catálogo | Registro y resolución `(norma, tipo) → descriptor` | Fórmulas |
+| Casos de uso | Orquestan: cargar → aplicabilidad → preparar → ejecutar → informe | Normas concretas |
+
+### Contratos de comprobación
+
+Una comprobación es una **función pura de números**: no recibe la entidad `Section` ni "busca" en el proyecto. Esto la hace testeable contra ejemplos de bibliografía sin construir un modelo.
+
+```python
+# domain/checking/check.py
+class Check(Protocol[I, P, R]):
+    def run(self, data: I, params: P) -> R: ...
+
+# domain/checking/kinds.py
+class CheckKind(StrEnum):
+    FLEXURE_ULS = "flexure_uls"
+    SHEAR_ULS = "shear_uls"
+    CRACK_WIDTH = "crack_width"
+    ...
+
+class NormId(StrEnum):
+    CE = "ce"; EC2 = "ec2"; EN1168 = "en1168"; ...
+
+# Ejemplo de resultado específico (norms/eurocode/flexure.py)
+@dataclass(frozen=True, slots=True)
+class FlexureResult(CheckResult):
+    m_rd: float
+    x: float
+    z: float
+```
+
+### Catálogo y selección (sin condicional central)
+
+El catálogo almacena descriptores heterogéneos encapsulando el tipado:
+
+```python
+# application/catalog.py
+@dataclass(frozen=True)
+class CheckDescriptor:
+    kind: CheckKind
+    norm: NormId
+    name: str
+    applicability: Callable[[StructuralModel], tuple[ApplicabilityIssue, ...]]
+    default_params: Callable[[], object]
+    prepare_and_run: Callable[[StructuralModel, object], CheckResult]
+    run_direct: Callable[[object, object], CheckResult]   # tests/comparaciones
+
+class CheckCatalog:
+    def register(self, d: CheckDescriptor) -> None: ...
+    def resolve(self, norm: NormId, kind: CheckKind) -> CheckDescriptor | None: ...
+    def available(self, norm: NormId | None = None) -> list[CheckDescriptor]: ...
+```
+
+Cada norma se declara a sí misma con `register(catalog)`. El caso de uso nunca importa una norma:
+
+```python
+def execute(self, model_id, norm: NormId, kind: CheckKind) -> CheckResult:
+    model = self._repo.get(model_id)
+    d = self._catalog.resolve(norm, kind)
+    if d is None: raise CheckNotAvailable(norm, kind)
+    issues = d.applicability(model)
+    if issues: raise CheckNotApplicable(issues)
+    return d.prepare_and_run(model, d.default_params())
+```
+
+Detalle y alternativas en [`decisions/0003-catalogo-plugins-sin-switch-central.md`](decisions/0003-catalogo-plugins-sin-switch-central.md).
+
+### Entradas, preparadores y dependencias entre cálculos
+
+- **Información compartida parcialmente:** los inputs se componen de los mismos VOs/escalares derivados; lo común vive en el modelo y en los motores, no en un "input universal".
+- **Datos adicionales:** el input de ese check simplemente tiene más campos; el sistema de tipos impide mezclarlos.
+- **Dependencia de resultados previos:** el input incluye el estado que necesita (`SectionState`, `SectionStateHistory`) y el **preparador compone los motores** explícitamente.
+
+Gestión de errores:
+
+| Situación | Mecanismo |
+|---|---|
+| Campo obligatorio ausente en un input | Error **de tipado** (dataclass sin valor por defecto) — Pyright |
+| El modelo no tiene datos para este check | `ApplicabilityIssue`, evaluado antes de ejecutar |
+| Datos inválidos en frontera (importación, formularios) | Validación pydantic en DTOs |
+| Fallo numérico (solver no converge) | Excepción `CalculationError` capturada por el caso de uso |
+
+### Resultados y trazabilidad
+
+Base común **mínima**, específica por comprobación, y traza de cálculos auxiliares:
+
+```python
+@dataclass(frozen=True, slots=True)
+class CalcStep:
+    label: str; symbol: str; value: float; unit: str
+    clause: str | None = None
+    children: tuple[CalcStep, ...] = ()     # sub-cálculos anidados
+
+@dataclass(frozen=True, slots=True)
+class CheckResult:
+    ratio: float           # demanda/capacidad (Ed/Rd ó Ru/φRn)
+    passed: bool
+    clause: str
+    steps: tuple[CalcStep, ...]
+```
+
+- **Común:** `ratio`, `passed`, `clause`, `steps`. Permite informes y comparaciones uniformes entre normas.
+- **Específico:** subclases con campos tipados. Nada de diccionarios de "extras".
+- **Auxiliar para leer** → `CalcStep`; **auxiliar para calcular con él** → campo tipado del resultado específico.
+- **Nivel de detalle:** `DetailLevel` (`SUMMARY` / `STANDARD` / `FULL`) permite controlar cuántos auxiliares se emiten.
+- La **presentación** (LaTeX, HTML) es responsabilidad de la capa de informe: el dominio solo produce datos.
+
+Detalle y alternativas en [`decisions/0005-traza-calculos-auxiliares.md`](decisions/0005-traza-calculos-auxiliares.md).
+
+### Unidades
+
+Sistema coherente fijo en todo el núcleo: **mm, N, MPa (N/mm²), N·mm**. Las conversiones se realizan solo en las fronteras (UI, importación, exportación); `CalcStep.unit` etiqueta para presentación. Detalle y alternativas en [`decisions/0004-unidades-convencion-n-mm-mpa.md`](decisions/0004-unidades-convencion-n-mm-mpa.md).
+
+## Normas (plugins)
+
+### Familia eurocódigo
+
+El Código Estructural no es independiente del EC2: es la familia eurocódigo con los parámetros nacionales españoles. Por eso las **implementaciones** residen en `norms/eurocode/` y lo que cambia entre `NormId.CE` y `NormId.EC2` son **datos**: coeficientes y referencias de cláusula (`ClauseRefs`) que alimentan la traza. Solo donde el CE diverge sustancialmente del EC2 se crea un check específico. Detalle en [`decisions/0006-familia-eurocodigo-parametros-nacionales.md`](decisions/0006-familia-eurocodigo-parametros-nacionales.md).
+
+### Normas de producto
+
+Una norma puede ofrecer un subconjunto de comprobaciones. `norms/en1168/` registra solo el cortante específico de placa alveolar, con `applicability` restringida a secciones alveolares pretensadas.
 
 ## Configuración
 
@@ -40,15 +218,31 @@ tests/{unit,integration,acceptance}
 ## UI (PySide)
 
 - Vistas finas + controladores (presenters) en `presentation/`.
+- El catálogo expone qué comprobaciones están disponibles por norma (y su aplicabilidad), de modo que la UI se construye a partir de esa consulta sin conocer las normas.
 - Flujo recomendado: Python puro; si se requiere edición visual, `.ui` en `presentation/views/ui/` y generados en `presentation/views/generated/`.
 
 ## Tipado
 
 - Pyright en modo `strict` (`[tool.pyright]` en `pyproject.toml`).
+- Genéricos + `Protocol` + dataclasses `frozen`/`slots`. Prohibido `**kwargs` y diccionarios genéricos como mecanismo principal.
 - Excluye `migrations`, `__pycache__`.
+
+## Pruebas
+
+- `tests/unit/domain`: motores contra soluciones analíticas e **invariantes** (equilibrio de tensiones).
+- `tests/unit/norms/<norma>`: ejemplos de referencia llamando a `run` con escalares, sin modelo.
+- `tests/unit/application`: preparadores y catálogo.
+- `tests/integration`: casos de uso end-to-end y comparación entre normas.
+- `tests/acceptance`: flujos completos (UI/controladores).
+- `pyright --strict` en CI como puerta estática.
 
 ## Roadmap
 
-- [ ] Walking skeleton (flujo mínimo end-to-end).
-- [ ] Migraciones Alembic iniciales.
-- [ ] Tests unitarios (dominio/aplicación) e integración (persistencia).
+1. Walking skeleton: geometría con huecos → propiedades → flexión ELU Código Estructural end-to-end, con traza.
+2. Split CE/EC2 (familia eurocódigo) + caso de uso `compare_norms`.
+3. Cortante: eurocódigo (CE/EC2) y módulo EN 1168 con aplicabilidad restringida.
+4. Pretensado y evolución temporal (pérdidas, transferencia, servicio).
+5. ELS: limitación de tensiones y fisuración.
+6. Normas adicionales (EHE-08, ACI 318) como validación de extensibilidad.
+
+Las especificaciones de cada milestone viven en [`specs/`](specs/): `spec.md` (qué y por qué), `bases_calculo.md` (fundamentos teóricos, aislados de la implementación y reutilizables en la memoria del TFM), `plan.md` (diseño técnico) y `tasks.md` (checklist).
