@@ -30,6 +30,9 @@ htmlcov/
 # Salidas generadas
 exports/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # IDE / SO
 .idea/
 .vscode/

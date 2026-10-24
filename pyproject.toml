@@ -24,6 +24,10 @@ dev = [
     "pytest>=8.0",
     "pyright>=1.1.380",
 ]
+notebooks = [
+    "matplotlib>=3.8",
+    "jupyter>=1.0",
+]
 
 [project.scripts]
 placas-alveolares = "placas_alveolares.main:principal"
