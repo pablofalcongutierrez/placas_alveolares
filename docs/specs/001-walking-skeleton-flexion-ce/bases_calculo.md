@@ -56,7 +56,7 @@ no es despreciable.
 - En este milestone, la compatibilidad se materializa a través del **diagrama de deformaciones del
   bloque rectangular** empleado por la comprobación de flexión
   (`run_flexure`, ver [`plan.md`](plan.md#norma-eurocódigo)).
-- Las leyes tensión-deformación de cada material se desacoplan tras el protocolo `StressStrainLaw`
+- Las leyes tensión-deformación de cada material se desacoplan tras el protocolo `LeyTensionDeformacion`
   (`domain/mechanics/laws.py`); ver [ADR 0001](../../decisions/0001-frontera-mecanica-fisica-vs-normativa.md).
 
 ## 2. Sistema de ejes y convención de signos
@@ -149,7 +149,7 @@ su **deformación última** `εud` para garantizar ductilidad.
 
 ### Vínculo con la implementación
 
-- La ley se expresará como una implementación del protocolo `StressStrainLaw`
+- La ley se expresará como una implementación del protocolo `LeyTensionDeformacion`
   (`domain/mechanics/laws.py` y `domain/mechanics/generic_laws.py`).
 - En el milestone 001, la armadura a tracción se supone plastificada (`σs = fyd`), coherente con el
   ejemplo de referencia.

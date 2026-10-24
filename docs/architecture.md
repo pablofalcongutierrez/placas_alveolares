@@ -35,7 +35,7 @@ src/placas_alveolares/
       mallado.py           #   Triangulo, mallar() (mapbox-earcut, aislado)
       integracion.py       #   ReglaCuadratura, Regla1Punto/Regla3Puntos, integrar()
       propiedades_seccion.py   # PropiedadesSeccion, propiedades_geometricas()
-      laws.py              #   Protocolos: StressStrainLaw, CreepShrinkageModel
+      laws.py              #   Protocolos: LeyTensionDeformacion, ModeloFluenciaRetraccion
       generic_laws.py      #   leyes físicas: elástica, elastoplástica
       strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
       moment_curvature.py
@@ -72,7 +72,7 @@ tests/{unit,integration,acceptance}
 
 El equilibrio, la compatibilidad deformacional, la integración de tensiones sobre fibras y la evolución temporal bajo un modelo de fluencia son física común. La parábola-rectángulo, el bloque de Whitney, los coeficientes γ/φ, las fórmulas de `V_Rd,c` y los límites de fisuración son normativos. Por tanto:
 
-- Los **motores mecánicos** viven en `domain/mechanics` y reciben las leyes constitutivas **por inyección** (`StressStrainLaw`, `CreepShrinkageModel`).
+- Los **motores mecánicos** viven en `domain/mechanics` y reciben las leyes constitutivas **por inyección** (`LeyTensionDeformacion`, `ModeloFluenciaRetraccion`).
 - Las **leyes normativas** viven en `norms/*/laws.py`. Las leyes físicas genéricas (elástica, elastoplástica) viven en `domain/mechanics/generic_laws.py` y permiten analizar sin ninguna norma.
 
 Detalle y alternativas en [`decisions/0001-frontera-mecanica-fisica-vs-normativa.md`](decisions/0001-frontera-mecanica-fisica-vs-normativa.md).

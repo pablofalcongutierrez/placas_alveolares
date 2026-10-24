@@ -34,7 +34,7 @@ src/placas_alveolares/
       mallado.py                          # Triangulo, mallar() (mapbox-earcut, aislado)
       integracion.py                      # ReglaCuadratura, Regla1Punto/Regla3Puntos, integrar()
       propiedades_seccion.py              # PropiedadesSeccion(area, y_cdg, z_cdg, i_y, i_z, i_yz)
-      laws.py                             # Protocol StressStrainLaw
+      laws.py                             # Protocol LeyTensionDeformacion
       generic_laws.py                     # ElasticLaw (lineal) — usado por pruebas de mecánica
     checking/
       kinds.py                            # CheckKind, NormId

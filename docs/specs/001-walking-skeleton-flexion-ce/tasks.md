@@ -27,10 +27,10 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 - [x] `domain/mechanics/integracion.py` — `EvaluacionGauss`, `ReglaCuadratura`, `Regla1Punto`, `Regla3Puntos`, `integrar()`.
 - [x] `domain/mechanics/propiedades_seccion.py` — `PropiedadesSeccion(area, y_cdg, z_cdg, i_y, i_z, i_yz)`, `propiedades_geometricas()` (malla + Gauss).
 
-### Mecánica pendiente
+### Leyes constitutivas (ADR 0001)
 
-- [ ] `domain/mechanics/laws.py` — `Protocol StressStrainLaw`.
-- [ ] `domain/mechanics/generic_laws.py` — `ElasticLaw`.
+- [x] `domain/mechanics/laws.py` — `Protocol LeyTensionDeformacion`.
+- [x] `domain/mechanics/generic_laws.py` — `LeyElastica` y `LeyElastoplastica`.
 
 ## Contratos de comprobación (domain)
 
@@ -41,6 +41,7 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 
 ## Norma eurocódigo (norms)
 
+- [x] `norms/eurocode/laws.py` — leyes σ–ε del hormigón (lineal, parábola-rectángulo, bilineal y general no lineal) y Tabla 3.1.
 - [ ] `norms/eurocode/params.py` — `EurocodeParams`, `ClauseRefs`.
 - [ ] `norms/eurocode/inputs.py` — `FlexureInput`.
 - [ ] `norms/eurocode/flexure.py` — `FlexureResult`, `run_flexure`, `prepare_flexure`, `applicability_flexure`.
@@ -66,6 +67,8 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 - [x] `tests/unit/domain/test_mallado.py` — triangulación con/sin huecos y círculo.
 - [x] `tests/unit/domain/test_integracion.py` — reglas de cuadratura e integrales exactas.
 - [x] `tests/unit/domain/test_propiedades_seccion.py` — área, cdg e inercia (300×500, hueco y círculo).
+- [x] `tests/unit/domain/test_generic_laws.py` — leyes elástica y elastoplástica.
+- [x] `tests/unit/norms/eurocode/test_laws.py` — Tabla 3.1, las cuatro leyes y equivalencia con el bloque rectangular.
 - [ ] `tests/unit/norms/eurocode/test_flexure.py` — ejemplo de referencia (MRd ≈ 258,0 kN·m, ratio ≈ 0,775) y pasos de traza.
 - [ ] `tests/unit/application/test_catalog.py` — resolución existente e inexistente.
 - [ ] `tests/integration/test_run_check_ce_flexure.py` — flujo completo y `CheckNotApplicable`.
