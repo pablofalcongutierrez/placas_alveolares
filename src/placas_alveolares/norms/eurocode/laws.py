@@ -1,17 +1,22 @@
-"""Leyes constitutivas del hormigón de la familia eurocódigo.
+"""Leyes constitutivas de la familia eurocódigo.
 
-Se implementan las cuatro leyes tensión-deformación de EN 1992-1-1, compartidas
-por el Código Estructural:
+Se implementan las leyes tensión-deformación de EN 1992-1-1, compartidas por el
+Código Estructural:
 
-- Lineal elástica (3.1.5) para análisis elástico y estados límite de servicio.
-- Parábola-rectángulo (3.1.7(1), figura 3.3) para cálculo de secciones en ELU.
-- Bilineal (3.1.7(2), figura 3.4) para cálculo de secciones en ELU.
-- General no lineal (3.1.5, ecuación 3.14, figura 3.2) para análisis no lineal
-  de la estructura, con rama descendente.
+- Hormigón, cuatro leyes: lineal elástica (3.1.5), parábola-rectángulo
+  (3.1.7(1), figura 3.3), bilineal (3.1.7(2), figura 3.4) y general no lineal
+  (3.1.5, ecuación 3.14, figura 3.2).
+- Acero pasivo, dos leyes de cálculo: bilineal con rama horizontal
+  (3.2.7(2), figura 3.7b) y bilineal con endurecimiento o rama inclinada
+  (3.2.7(1), figura 3.7a).
+
+El Código Estructural adopta estas mismas leyes; la diferencia entre CE y EC2
+son los coeficientes y las referencias de cláusula (ADR 0006).
 
 Las leyes se construyen con los **valores ya resueltos** (``fcd``, ``εc2``…):
 no consultan el modelo ni la norma desde el motor. Las factorías de este módulo
-hacen esa resolución a partir de :class:`Hormigon` (ADR 0001).
+hacen esa resolución a partir de :class:`Hormigon` o :class:`AceroArmadura`
+(ADR 0001).
 
 Convención: deformaciones y tensiones positivas en tracción y negativas en
 compresión; deformación adimensional (tanto por uno) y tensión en MPa. Las
@@ -23,8 +28,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from placas_alveolares.domain.mechanics.generic_laws import LeyElastica
-from placas_alveolares.domain.model.materiales import Hormigon
+from placas_alveolares.domain.mechanics.generic_laws import (
+    LeyElastica,
+    LeyElastoplastica,
+)
+from placas_alveolares.domain.model.materiales import AceroArmadura, Hormigon
 from placas_alveolares.norms.errores import CasoFueraDeAlcance
 
 _FCK_MINIMO = 12.0
@@ -32,6 +40,9 @@ _FCK_MINIMO = 12.0
 
 _FCK_MAXIMO = 90.0
 """Resistencia característica máxima cubierta por la Tabla 3.1 (MPa)."""
+
+_FACTOR_DEFORMACION_ULTIMA = 0.9
+"""Factor de EN 1992-1-1, 3.2.7(2): ``εud = 0,9·εuk``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +113,41 @@ def deformaciones_tabla_3_1(fck: float, fcm: float) -> DeformacionesHormigon:
         eps_c3=(1.75 + 0.55 * (fck - 50.0) / 40.0) / 1000.0,
         eps_cu3=eps_cu2,
     )
+
+
+def fcm_tabla_3_1(fck: float) -> float:
+    """Resistencia media a compresión según la Tabla 3.1.
+
+    Args:
+        fck: Resistencia característica a compresión (MPa).
+
+    Returns:
+        La resistencia media ``fcm = fck + 8`` (MPa).
+
+    Raises:
+        CasoFueraDeAlcance: Si ``fck`` queda fuera del rango 12–90 MPa
+            cubierto por la Tabla 3.1.
+    """
+    if not _FCK_MINIMO <= fck <= _FCK_MAXIMO:
+        raise CasoFueraDeAlcance(
+            "La Tabla 3.1 de EN 1992-1-1 cubre fck entre 12 y 90 MPa; "
+            f"se recibió fck = {fck} MPa."
+        )
+    return fck + 8.0
+
+
+def ecm_tabla_3_1(fcm: float) -> float:
+    """Módulo secante del hormigón según la Tabla 3.1.
+
+    ``Ecm = 22·(fcm/10)^0,3`` GPa (EN 1992-1-1, Tabla 3.1).
+
+    Args:
+        fcm: Resistencia media a compresión (MPa).
+
+    Returns:
+        El módulo secante ``Ecm`` (MPa).
+    """
+    return 22_000.0 * (fcm / 10.0) ** 0.3
 
 
 @dataclass(frozen=True, slots=True)
@@ -382,4 +428,167 @@ def ley_hormigon_no_lineal(hormigon: Hormigon) -> LeyNoLinealGeneral:
         ecm=hormigon.ecm,
         eps_c1=deformaciones.eps_c1,
         eps_cu1=deformaciones.eps_cu1,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class LeyBilinealEndurecida:
+    """Diagrama bilineal con endurecimiento del acero pasivo.
+
+    Corresponde a la rama inclinada de EN 1992-1-1, 3.2.7(1), figura 3.7a
+    (adoptada por el Código Estructural). La rama elástica llega hasta
+    ``fyd`` en ``εyd``; a partir de ahí la tensión crece linealmente hasta
+    ``ftd`` en ``εud`` y se anula para deformaciones mayores.
+
+    Attributes:
+        modulo_elasticidad: Módulo de elasticidad ``Es`` (MPa).
+        limite_elastico: Límite elástico de cálculo ``fyd`` (MPa, valor
+            absoluto).
+        resistencia_ultima: Resistencia de cálculo a rotura ``ftd`` (MPa,
+            valor absoluto).
+        deformacion_ultima: Deformación última de cálculo ``εud`` (tanto por
+            uno, valor absoluto).
+    """
+
+    modulo_elasticidad: float
+    limite_elastico: float
+    resistencia_ultima: float
+    deformacion_ultima: float
+
+    @property
+    def deformacion_fluencia(self) -> float:
+        """Deformación de fluencia ``εyd = fyd/Es`` (positiva)."""
+        return self.limite_elastico / self.modulo_elasticidad
+
+    def tension(self, deformacion: float) -> float:
+        """Tensión del diagrama bilineal con endurecimiento.
+
+        Args:
+            deformacion: Deformación longitudinal (tanto por uno).
+
+        Returns:
+            La tensión (MPa), positiva en tracción y negativa en compresión;
+            nula tras la deformación última.
+        """
+        deformacion_absoluta = abs(deformacion)
+        if deformacion_absoluta > self.deformacion_ultima:
+            return 0.0
+        if deformacion_absoluta <= self.deformacion_fluencia:
+            return self.modulo_elasticidad * deformacion
+
+        signo = 1.0 if deformacion > 0.0 else -1.0
+        exceso = deformacion_absoluta - self.deformacion_fluencia
+        pendiente_endurecimiento = (
+            self.resistencia_ultima - self.limite_elastico
+        ) / (self.deformacion_ultima - self.deformacion_fluencia)
+        return signo * (
+            self.limite_elastico + pendiente_endurecimiento * exceso
+        )
+
+    def modulo_tangente(self, deformacion: float) -> float:
+        """Pendiente del diagrama bilineal con endurecimiento.
+
+        Args:
+            deformacion: Deformación longitudinal (tanto por uno).
+
+        Returns:
+            El módulo ``Es`` en la rama elástica, la pendiente de
+            endurecimiento en la rama inclinada (MPa) y cero tras la
+            deformación última.
+        """
+        deformacion_absoluta = abs(deformacion)
+        if deformacion_absoluta > self.deformacion_ultima:
+            return 0.0
+        if deformacion_absoluta <= self.deformacion_fluencia:
+            return self.modulo_elasticidad
+        return (self.resistencia_ultima - self.limite_elastico) / (
+            self.deformacion_ultima - self.deformacion_fluencia
+        )
+
+    @property
+    def deformacion_maxima_compresion(self) -> float:
+        """Deformación última de compresión (negativa)."""
+        return -self.deformacion_ultima
+
+    @property
+    def deformacion_maxima_traccion(self) -> float:
+        """Deformación última de tracción (positiva)."""
+        return self.deformacion_ultima
+
+
+def _deformacion_ultima_de_diseno(
+    acero: AceroArmadura, gamma_s: float
+) -> float:
+    """Deformación última de cálculo ``εud = 0,9·εuk``.
+
+    Args:
+        acero: Acero pasivo con su alargamiento característico ``εuk``.
+        gamma_s: Coeficiente parcial de seguridad del acero.
+
+    Returns:
+        La deformación última de cálculo (tanto por uno).
+
+    Raises:
+        CasoFueraDeAlcance: Si ``gamma_s`` no es positivo o si la deformación
+            última no supera la de fluencia (el acero no tendría rama
+            plástica).
+    """
+    if gamma_s <= 0.0:
+        raise CasoFueraDeAlcance(
+            "El coeficiente parcial del acero gamma_s debe ser positivo; "
+            f"se recibió {gamma_s}."
+        )
+
+    deformacion_ultima = _FACTOR_DEFORMACION_ULTIMA * acero.eps_uk
+    deformacion_fluencia = (acero.fyk / gamma_s) / acero.es
+    if deformacion_ultima <= deformacion_fluencia:
+        raise CasoFueraDeAlcance(
+            "El acero no tiene rama plástica con los parámetros dados: "
+            f"εud = {deformacion_ultima} no supera εyd = "
+            f"{deformacion_fluencia} (eps_uk = {acero.eps_uk}, "
+            f"gamma_s = {gamma_s})."
+        )
+    return deformacion_ultima
+
+
+def ley_acero_pasivo_bilineal(
+    acero: AceroArmadura, gamma_s: float
+) -> LeyElastoplastica:
+    """Ley de cálculo con rama superior horizontal (3.2.7(2), figura 3.7b).
+
+    Args:
+        acero: Acero pasivo del modelo.
+        gamma_s: Coeficiente parcial de seguridad del acero.
+
+    Returns:
+        La ley elastoplástica perfecta con ``fyd = fyk/γs`` y
+        ``εud = 0,9·εuk``.
+    """
+    deformacion_ultima = _deformacion_ultima_de_diseno(acero, gamma_s)
+    return LeyElastoplastica(
+        modulo_elasticidad=acero.es,
+        limite_elastico=acero.fyk / gamma_s,
+        deformacion_ultima=deformacion_ultima,
+    )
+
+
+def ley_acero_pasivo_endurecida(
+    acero: AceroArmadura, gamma_s: float
+) -> LeyBilinealEndurecida:
+    """Ley de cálculo con rama inclinada (3.2.7(1), figura 3.7a).
+
+    Args:
+        acero: Acero pasivo del modelo.
+        gamma_s: Coeficiente parcial de seguridad del acero.
+
+    Returns:
+        La ley bilineal con ``fyd = fyk/γs``, ``ftd = ftk/γs`` y
+        ``εud = 0,9·εuk``.
+    """
+    deformacion_ultima = _deformacion_ultima_de_diseno(acero, gamma_s)
+    return LeyBilinealEndurecida(
+        modulo_elasticidad=acero.es,
+        limite_elastico=acero.fyk / gamma_s,
+        resistencia_ultima=acero.ftk / gamma_s,
+        deformacion_ultima=deformacion_ultima,
     )

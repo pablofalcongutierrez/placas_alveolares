@@ -37,6 +37,10 @@ class MaterialInvalido(ErrorValidacion):
     """Propiedad física de un material no válida."""
 
 
+class CoeficientesInvalidos(ErrorValidacion):
+    """Juego de coeficientes parciales de seguridad no válido."""
+
+
 class SeccionInvalida(ErrorValidacion):
     """Sección transversal o componente inválido."""
 

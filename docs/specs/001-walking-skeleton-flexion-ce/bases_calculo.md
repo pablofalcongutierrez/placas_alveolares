@@ -143,13 +143,72 @@ superior a C50/60: `λ = 0,8` y `η = 1,0`.
 
 ## 4. Relación tensión-deformación en el acero de armar
 
-Se adopta un comportamiento elastoplástico perfecto para el acero de armar: lineal hasta el límite
-elástico de cálculo `fyd = fyk/γs` y plástico a partir de él. La deformación del acero se limita por
-su **deformación última** `εud` para garantizar ductilidad.
+### 4.1. Propiedades características del material
+
+El acero pasivo se describe por sus propiedades características: límite elástico `fyk`, carga
+unitaria de rotura `ftk`, módulo de elasticidad `Es` y alargamiento total característico bajo carga
+máxima `εuk`. El Código Estructural fija `Es = 200 GPa` y clasifica los aceros soldables en la
+**Tabla 34.2.a del artículo 34** (según UNE 36065 y UNE 36068):
+
+| Tipo de acero | `fyk` (N/mm²) | `ftk` (N/mm²) | `εmáx` barra (%) |
+|---|---|---|---|
+| B 400 S | ≥ 400 | ≥ 440 | ≥ 5,0 |
+| B 500 S | ≥ 500 | ≥ 550 | ≥ 5,0 |
+| B 400 SD | ≥ 400 | ≥ 480 | ≥ 7,5 |
+| B 500 SD | ≥ 500 | ≥ 575 | ≥ 7,5 |
+
+Se adoptan los mínimos garantizados de la tabla como valores característicos. El alargamiento
+`εuk` que alimenta el diagrama de cálculo es el **alargamiento total bajo carga máxima** (`εmáx`,
+`A_gt`), no el alargamiento de rotura `εu,5`: este último se mide sobre una base de cinco diámetros
+y no interviene en la ley constitutiva. El alcance actual considera únicamente acero suministrado
+en barra; el suministro en rollo no se modela. Las relaciones `fs/fy` y `fy,real/fy,nominal` son
+criterios de recepción del producto y no datos de entrada del cálculo.
+
+### 4.2. Diagramas de cálculo
+
+La familia eurocódigo (EN 1992-1-1, 3.2.7, adoptada por el Código Estructural) permite dos diagramas
+tensión-deformación de cálculo, ambos simétricos en tracción y compresión:
+
+1. **Rama horizontal** (3.2.7(2), figura 3.7b): comportamiento elastoplástico perfecto, lineal
+   hasta `fyd = fyk/γs` y constante hasta la deformación última `εud = 0,9·εuk`.
+2. **Rama inclinada con endurecimiento** (3.2.7(1), figura 3.7a): lineal hasta `fyd` en `εyd`,
+   y desde ahí crecimiento lineal hasta `ftd = ftk/γs` en `εud`.
+
+En ambos casos, para deformaciones superiores a `εud` la ley devuelve tensión nula: el material se
+considera agotado y la comprobación normativa debe detectar que se ha superado el límite último.
+
+### 4.3. Estructura `norms/eurocode` frente a `norms/ce` y biblioteca de usuario
+
+El Código Estructural no se implementa como un conjunto de algoritmos independiente: es la familia
+eurocódigo aplicada con los parámetros nacionales españoles ([ADR 0006](../../decisions/0006-familia-eurocodigo-parametros-nacionales.md)).
+Por eso las leyes de EN 1992-1-1 viven en `norms/eurocode/` y se registran bajo `NormId.CE` con los
+coeficientes y etiquetas del CE desde `norms/ce/`. Los datos específicamente españoles —aceros de
+la Tabla 34.2.a, clases de hormigón, cordones de pretensado y juegos de coeficientes— residen en
+`norms/ce/materiales/` y `norms/ce/coeficientes.py` como **tablas abiertas**: añadir una entrada es
+añadir una línea de datos, sin tocar algoritmos.
+
+Sobre esas tablas se construye una **biblioteca de usuario** ([ADR 0010](../../decisions/0010-catalogo-generico-datos.md)):
+los presets normativos se inyectan en el catálogo en la composición y son de solo lectura; el
+usuario puede añadir sus propios materiales y coeficientes, que se persistirán en la base de datos.
+El contrato vive en `application/ports/` y no conoce las normas.
 
 ### Vínculo con la implementación
 
-- La ley se expresará como una implementación del protocolo `LeyTensionDeformacion`
-  (`domain/mechanics/laws.py` y `domain/mechanics/generic_laws.py`).
+- `AceroArmadura(fyk, ftk, es, eps_uk)` en `domain/model/materiales.py` guarda las propiedades
+  características; no contiene valores de cálculo ni coeficientes de seguridad.
+- Las factorías `ley_acero_pasivo_bilineal` y `ley_acero_pasivo_endurecida`
+  (`norms/eurocode/laws.py`) resuelven `fyd`, `ftd` y `εud` y devuelven leyes que cumplen el
+  protocolo `LeyTensionDeformacion` (`domain/mechanics/laws.py`).
+- La rama horizontal reutiliza la ley genérica `LeyElastoplastica`
+  (`domain/mechanics/generic_laws.py`), pues el algoritmo es idéntico; la rama inclinada se
+  implementa como `LeyBilinealEndurecida`.
+- `norms/ce/materiales/aceros_pasivos.py` construye los cuatro tipos de la Tabla 34.2.a con
+  `acero_pasivo(nombre)`, para suministro en barra; `hormigones.py` y `aceros_pretensados.py` hacen
+  lo propio con las clases HA y los cordones.
+- `norms/ce/coeficientes.py` aporta los juegos de `γc` y `γs` (persistente o transitoria y
+  accidental), cuya forma define `CoeficientesParciales` en `domain/value_objects/`.
+- `application/almacen_catalogo.py` implementa el contrato genérico `Catalogo[T]` y unifica
+  presets y entradas de usuario, protegiendo los normativos con `EntradaProtegida`. La identidad
+  de un preset es `(NormId, nombre)`, de modo que varias normas pueden compartir designaciones.
 - En el milestone 001, la armadura a tracción se supone plastificada (`σs = fyd`), coherente con el
   ejemplo de referencia.

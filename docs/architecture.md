@@ -40,6 +40,8 @@ src/placas_alveolares/
       strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
+    value_objects/         # objetos de valor sin identidad
+      coeficientes_parciales.py   # CoeficientesParciales (forma; valores en norms)
     state/                 # StrainProfile, StressResultants, SectionState, History
     checking/              # contratos de comprobación
       kinds.py             #   CheckKind (vocabulario), NormId
@@ -50,13 +52,20 @@ src/placas_alveolares/
   norms/
     eurocode/              # implementaciones de la familia eurocódigo
     ce/                    # Código Estructural (parámetros nacionales + registro)
+      materiales/          #   tablas abiertas: aceros pasivos, hormigones, pretensados
+      coeficientes.py      #   juegos de γc y γs
     ec2/                   # Eurocódigo 2 (valores recomendados)
     en1168/                # placa alveolar: cortante específico
     _shared/               # fórmulas normativas realmente repetidas (regla de tres)
   application/
+    errores.py             # ErrorAplicacion, EntradaProtegida, EntradaDuplicada
     catalog.py             # CheckCatalog + descriptores
+    almacen_catalogo.py    # AlmacenCatalogo[T]: implementación genérica en memoria
     use_cases/             # run_check, compare_norms, analyze_section
-    dtos/  ports/
+    dtos/
+    ports/
+      catalogo.py          # Catalogo[T]: contrato genérico de biblioteca
+      entradas_catalogo.py # EntradaCatalogo[T], OrigenEntrada
   infrastructure/{config,persistence,export,external_services}
   presentation/{views,controllers,widgets}
 migrations/                # Alembic
@@ -156,6 +165,28 @@ def execute(self, model_id, norm: NormId, kind: CheckKind) -> CheckResult:
 
 Detalle y alternativas en [`decisions/0003-catalogo-plugins-sin-switch-central.md`](decisions/0003-catalogo-plugins-sin-switch-central.md).
 
+### Catálogos de datos normativos
+
+Los materiales, los coeficientes y cualquier otra tabla normativa forman **bibliotecas tipadas** con dos fuentes:
+
+- **Presets normativos:** tablas de datos en `norms/<norma>/`. Son dato normativo versionado en código y **de solo lectura**.
+- **Entradas de usuario:** datos creados por el usuario, persistentes en la base de datos (milestone de persistencia).
+
+El contrato es un único puerto genérico, `Catalogo[T]`, implementado en memoria por `AlmacenCatalogo[T]`. Cada instancia contiene **un solo tipo de dato** (`Hormigon`, `CoeficientesParciales`, …), de modo que añadir una nueva tabla no exige crear otro puerto ni otro CRUD.
+
+Cada entrada es una `EntradaCatalogo[T]` con:
+
+- `origen`: `NORMATIVO` o `USUARIO`;
+- `norma`: `NormId` para presets y `None` para entradas de usuario;
+- `edicion` y `referencia`: metadatos opcionales de procedencia;
+- `valor`: el dato tipado.
+
+Los presets se identifican por `(NormId, nombre)`, por lo que dos normas pueden compartir designación sin sobrescribirse. Las entradas de usuario son independientes de la norma. `registrar` y `eliminar` solo actúan sobre el espacio de usuario; los intentos de reutilizar un nombre normativo lanzan `EntradaProtegida`, y los presets duplicados lanzan `EntradaDuplicada`.
+
+`application` no importa `norms`: la composición (`main.py`) inyecta los presets ya materializados como tipos del dominio.
+
+Detalle y alternativas en [`decisions/0010-catalogo-generico-datos.md`](decisions/0010-catalogo-generico-datos.md).
+
 ### Entradas, preparadores y dependencias entre cálculos
 
 - **Información compartida parcialmente:** los inputs se componen de los mismos VOs/escalares derivados; lo común vive en el modelo y en los motores, no en un "input universal".
@@ -167,7 +198,8 @@ Gestión de errores:
 | Situación | Mecanismo |
 |---|---|
 | Campo obligatorio ausente en un input | Error **de tipado** (dataclass sin valor por defecto) — Pyright |
-| Invariante de dominio incumplida | `ErrorValidacion` (`GeometriaInvalida`, `MaterialInvalido`, `SeccionInvalida`, `FaseInvalida`, `ModeloInvalido`) |
+| Invariante de dominio incumplida | `ErrorValidacion` (`GeometriaInvalida`, `MaterialInvalido`, `SeccionInvalida`, `FaseInvalida`, `ModeloInvalido`, `CoeficientesInvalidos`) |
+| Intento de modificar un preset normativo | `EntradaProtegida` (`ErrorAplicacion`) |
 | El modelo no tiene datos para este check | `ApplicabilityIssue`, evaluado antes de ejecutar |
 | Datos inválidos en frontera (importación, formularios) | Validación pydantic en DTOs |
 | Fallo numérico (solver no converge) | `ErrorCalculo` (p. ej. `ErrorMallado`) capturado por el caso de uso |

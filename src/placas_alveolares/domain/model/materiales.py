@@ -62,18 +62,32 @@ class AceroArmadura:
 
     Attributes:
         fyk: Límite elástico característico (MPa).
+        ftk: Carga unitaria característica de rotura (MPa).
         es: Módulo de elasticidad (MPa).
+        eps_uk: Alargamiento total característico bajo carga máxima
+            (tanto por uno).
 
     Raises:
-        MaterialInvalido: Si alguna propiedad no es estrictamente positiva.
+        MaterialInvalido: Si alguna propiedad no es estrictamente positiva o
+            si ``ftk`` es menor que ``fyk``.
     """
 
     fyk: float
+    ftk: float
     es: float
+    eps_uk: float
 
     def __post_init__(self) -> None:
         _exigir_positivo("fyk", self.fyk)
+        _exigir_positivo("ftk", self.ftk)
         _exigir_positivo("es", self.es)
+        _exigir_positivo("eps_uk", self.eps_uk)
+        if self.ftk < self.fyk:
+            raise MaterialInvalido(
+                "La carga unitaria de rotura ftk no puede ser menor que el "
+                f"límite elástico fyk; se recibió ftk = {self.ftk} MPa y "
+                f"fyk = {self.fyk} MPa."
+            )
 
 
 @dataclass(frozen=True, slots=True)

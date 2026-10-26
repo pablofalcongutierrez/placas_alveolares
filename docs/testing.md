@@ -18,7 +18,7 @@ La estrategia sigue una **pirámide**:
 |---|---|---|---|
 | Unitario (dominio) | `tests/unit/domain/` | VOs, validaciones y motores contra **soluciones analíticas** e invariantes | Rápido, sin modelo completo ni norma |
 | Unitario (normas) | `tests/unit/norms/<norma>/` | `run(data, params)` con **escalares**, sin modelo | Un check es función pura: se aísla la regla normativa |
-| Unitario (aplicación) | `tests/unit/application/` | Preparadores y catálogo | Verifica el pegamento sin depender de normas |
+| Unitario (aplicación) | `tests/unit/application/` | Catálogo genérico, preparadores y puertos | Verifica el pegamento sin depender de normas |
 | Integración | `tests/integration/` | Casos de uso end-to-end y comparación entre normas | Comprueba la composición real |
 | Aceptación | `tests/acceptance/` | Flujos completos (controladores/UI) | Único lugar donde se valida la UI |
 
@@ -41,19 +41,19 @@ tests/
   __init__.py
   unit/
     __init__.py
-    domain/
-      __init__.py
-      test_geometria.py             # 7 tests
-      test_seccion.py               # 6 tests
-      test_fases.py                 # 3 tests
-      test_propiedades_seccion.py   # 9 tests
-      test_mallado.py               # 4 tests
-      test_integracion.py           # 8 tests
-  integration/                      # solo __init__.py (pendiente)
-  acceptance/                       # solo __init__.py (pendiente)
+    domain/                       # VOs, modelo y motores mecánicos
+    norms/
+      ce/                         # tablas normativas y coeficientes CE
+      eurocode/                   # leyes constitutivas eurocódigo
+    application/
+      test_almacen_catalogo.py    # catálogo genérico con datos sintéticos
+  integration/                    # solo __init__.py (pendiente)
+  acceptance/                     # solo __init__.py (pendiente)
 ```
 
-Total actual: **37 tests**, todos en `tests/unit/domain/`.
+La suite cubre el dominio, las tablas y leyes normativas y el catálogo genérico de
+aplicación. La composición real y los casos de uso se incorporarán a
+`tests/integration/`.
 
 | Fichero | Cobertura |
 |---|---|
@@ -63,6 +63,9 @@ Total actual: **37 tests**, todos en `tests/unit/domain/`.
 | `test_propiedades_seccion.py` | Área, cdg, inercias e producto de inercia (rectángulo, hueco, L, círculo, comparación de reglas) |
 | `test_mallado.py` | Triangulación con y sin huecos, círculo poligonizado, hueco fuera del contorno |
 | `test_integracion.py` | Suma de pesos, integrales exactas de grado ≤ 2 (y, z, y·z) y comparación de reglas |
+| `unit/norms/ce/` | Tablas de materiales y coeficientes del Código Estructural |
+| `unit/norms/eurocode/` | Leyes constitutivas del hormigón y del acero |
+| `unit/application/test_almacen_catalogo.py` | Contrato genérico, identidad por norma, presets protegidos y entradas de usuario |
 
 ## 3. Configuración
 
@@ -169,7 +172,8 @@ def test_seccion_exige_al_menos_un_componente() -> None:
 **Pendiente hoy:**
 
 - `tests/integration/` y `tests/acceptance/` contienen solo `__init__.py`.
-- No hay tests de normas ni de aplicación (llegan con el milestone 001).
+- `tests/unit/application/test_almacen_catalogo.py` cubre el catálogo genérico con datos
+  sintéticos, sin importar normas. La composición real se probará en `tests/integration/`.
 
 **Propuestas futuras** (no implantadas):
 

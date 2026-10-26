@@ -9,6 +9,8 @@ from placas_alveolares.norms.errores import CasoFueraDeAlcance
 from placas_alveolares.norms.eurocode.laws import (
     LeyParabolaRectangulo,
     deformaciones_tabla_3_1,
+    ecm_tabla_3_1,
+    fcm_tabla_3_1,
     ley_hormigon_bilineal,
     ley_hormigon_lineal,
     ley_hormigon_no_lineal,
@@ -197,3 +199,24 @@ def test_parabola_reproduce_el_bloque_rectangular() -> None:
     assert distancia_al_extremo == pytest.approx(0.4160, abs=1e-3)
     assert factor_resultante == pytest.approx(0.8, rel=2e-2)
     assert distancia_al_extremo == pytest.approx(0.4, abs=2e-2)
+
+
+def test_fcm_tabla_3_1() -> None:
+    """La resistencia media es fck + 8 MPa."""
+    assert fcm_tabla_3_1(30.0) == pytest.approx(38.0)
+    assert fcm_tabla_3_1(50.0) == pytest.approx(58.0)
+
+
+@pytest.mark.parametrize("fck", [10.0, 11.9, 90.1, 100.0])
+def test_fcm_tabla_3_1_fuera_de_alcance(fck: float) -> None:
+    """La Tabla 3.1 solo cubre hormigones entre 12 y 90 MPa."""
+    with pytest.raises(CasoFueraDeAlcance):
+        fcm_tabla_3_1(fck)
+
+
+def test_ecm_tabla_3_1() -> None:
+    """El módulo secante sigue Ecm = 22·(fcm/10)^0,3 GPa."""
+    assert ecm_tabla_3_1(38.0) == pytest.approx(32_834.0, rel=1e-3)
+    assert ecm_tabla_3_1(38.0) == pytest.approx(
+        22_000.0 * (38.0 / 10.0) ** 0.3
+    )

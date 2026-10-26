@@ -25,7 +25,12 @@ def _componentes() -> tuple[ComponenteSeccion, ...]:
     placa = ComponenteSeccion(geometria=rectangulo(300.0, 500.0), material=_hormigon())
     armado = ComponenteSeccion(
         geometria=circulo(Punto(y=0.0, z=50.0), radio=21.85),
-        material=AceroArmadura(fyk=500.0, es=200_000.0),
+        material=AceroArmadura(
+            fyk=500.0,
+            ftk=550.0,
+            es=200_000.0,
+            eps_uk=0.075,
+        ),
     )
     return (placa, armado)
 

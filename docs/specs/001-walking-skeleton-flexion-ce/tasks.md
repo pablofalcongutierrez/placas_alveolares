@@ -34,7 +34,8 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 
 ## Contratos de comprobación (domain)
 
-- [ ] `domain/checking/kinds.py` — `CheckKind` (`FLEXURE_ULS`, …), `NormId` (`CE`, `EC2`, …).
+- [x] `domain/checking/kinds.py` — `NormId` (`CE`, `EC2`, `EN1168`).
+- [ ] `domain/checking/kinds.py` — `CheckKind` (`FLEXURE_ULS`, …).
 - [ ] `domain/checking/results.py` — `CalcStep`, `CheckResult`.
 - [ ] `domain/checking/check.py` — `Protocol Check[I,P,R]`, `ApplicabilityIssue`.
 - [ ] `domain/checking/trace.py` — `DetailLevel`, `TraceBuilder`.
@@ -42,6 +43,11 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 ## Norma eurocódigo (norms)
 
 - [x] `norms/eurocode/laws.py` — leyes σ–ε del hormigón (lineal, parábola-rectángulo, bilineal y general no lineal) y Tabla 3.1.
+- [x] `domain/model/materiales.py` — ampliar `AceroArmadura` con `ftk` y `eps_uk`.
+- [x] `norms/eurocode/laws.py` — leyes σ–ε del acero pasivo (rama horizontal y rama inclinada con endurecimiento) según EN 1992-1-1, 3.2.7.
+- [x] `norms/ce/materiales/` — tablas abiertas de aceros pasivos (Tabla 34.2.a, suministro en barra), hormigones (HA-25 a HA-60) y cordones de pretensado.
+- [x] `norms/ce/coeficientes.py` — juegos de γc y γs del CE (persistente o transitoria y accidental).
+- [x] `domain/value_objects/coeficientes_parciales.py` — `CoeficientesParciales` y validación.
 - [ ] `norms/eurocode/params.py` — `EurocodeParams`, `ClauseRefs`.
 - [ ] `norms/eurocode/inputs.py` — `FlexureInput`.
 - [ ] `norms/eurocode/flexure.py` — `FlexureResult`, `run_flexure`, `prepare_flexure`, `applicability_flexure`.
@@ -50,6 +56,8 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 ## Aplicación
 
 - [ ] `application/catalog.py` — `CheckDescriptor`, `CheckCatalog`, `make_descriptor`.
+- [x] `application/ports/catalogo.py` y `entradas_catalogo.py` — `Catalogo[T]` y `EntradaCatalogo[T]` con norma, edición y referencia.
+- [x] `application/almacen_catalogo.py` — `AlmacenCatalogo[T]` con presets protegidos y entradas de usuario.
 - [ ] `application/ports` — `ModelRepository`.
 - [ ] `application/use_cases/run_check.py` — `RunCheck`, `CheckNotAvailable`, `CheckNotApplicable`.
 - [ ] `application/use_cases/compare_norms.py` — `CompareNorms`.
@@ -69,6 +77,10 @@ Marca cada tarea al completarla. Antes de cerrar: `pyright` limpio y `pytest` ve
 - [x] `tests/unit/domain/test_propiedades_seccion.py` — área, cdg e inercia (300×500, hueco y círculo).
 - [x] `tests/unit/domain/test_generic_laws.py` — leyes elástica y elastoplástica.
 - [x] `tests/unit/norms/eurocode/test_laws.py` — Tabla 3.1, las cuatro leyes y equivalencia con el bloque rectangular.
+- [x] `tests/unit/norms/eurocode/test_steel_laws.py` — ramas horizontal e inclinada del acero pasivo, simetría, εud y casos fuera de alcance.
+- [x] `tests/unit/norms/ce/` — aceros pasivos, hormigones, cordones y coeficientes del CE.
+- [x] `tests/unit/domain/test_coeficientes_parciales.py` — validación de `CoeficientesParciales`.
+- [x] `tests/unit/application/test_almacen_catalogo.py` — contrato genérico, identidad por norma, presets y entradas de usuario.
 - [ ] `tests/unit/norms/eurocode/test_flexure.py` — ejemplo de referencia (MRd ≈ 258,0 kN·m, ratio ≈ 0,775) y pasos de traza.
 - [ ] `tests/unit/application/test_catalog.py` — resolución existente e inexistente.
 - [ ] `tests/integration/test_run_check_ce_flexure.py` — flujo completo y `CheckNotApplicable`.
