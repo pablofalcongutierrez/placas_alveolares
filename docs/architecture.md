@@ -40,6 +40,11 @@ src/placas_alveolares/
       strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
+    numerics/              # solvers genéricos, independientes de la física
+      problema.py          #   ProblemaNoLineal y ProblemaParametrizado
+      newton.py            #   Newton (F(x) = 0)
+      diferencias_finitas.py
+      continuacion/        #   contratos de continuación (λ, restricción de arco)
     value_objects/         # objetos de valor sin identidad
       coeficientes_parciales.py   # CoeficientesParciales (forma; valores en norms)
     state/                 # StrainProfile, StressResultants, SectionState, History
@@ -101,6 +106,26 @@ Detalle y alternativas en [`decisions/0001-frontera-mecanica-fisica-vs-normativa
 | Resultado y traza | `ratio`, veredicto, cláusula y pasos de cálculo | Normas concretas |
 | Catálogo | Registro y resolución `(norma, tipo) → descriptor` | Fórmulas |
 | Casos de uso | Orquestan: cargar → aplicabilidad → preparar → ejecutar → informe | Normas concretas |
+
+### Solvers numéricos desacoplados
+
+Los métodos numéricos viven en `domain/numerics` y no conocen la física. Se
+distinguen dos familias:
+
+- **Ecuaciones no lineales** (`SolverNoLineal`): resuelven `F(x) = 0`. Newton
+  es la primera implementación; ModifiedNewton, DampedNewton y Broyden podrán
+  añadirse como clases independientes. La resolución lineal se delega en
+  NumPy y el historial de iteraciones queda en el resultado.
+- **Continuación** (`SolverContinuacion`): recorren una trayectoria
+  `F(u, λ) = 0` con una restricción de arco. El factor de carga `λ` es una
+  incógnita, no un parámetro fijo. Los contratos incluyen
+  `ProblemaParametrizado` (residuo, `∂F/∂u` y `∂F/∂λ`), `RestriccionArco`,
+  `EstadoContinuacion` y `ResultadoContinuacion`. Arc-length se implementará
+  como un solver de esta familia y podrá reutilizar cualquier
+  `SolverNoLineal` como corrector.
+
+Detalle y alternativas en
+[`decisions/0011-solvers-no-lineales-desacoplados.md`](decisions/0011-solvers-no-lineales-desacoplados.md).
 
 ### Contratos de comprobación
 

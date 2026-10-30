@@ -63,6 +63,8 @@ aplicación. La composición real y los casos de uso se incorporarán a
 | `test_propiedades_seccion.py` | Área, cdg, inercias e producto de inercia (rectángulo, hueco, L, círculo, comparación de reglas) |
 | `test_mallado.py` | Triangulación con y sin huecos, círculo poligonizado, hueco fuera del contorno |
 | `test_integracion.py` | Suma de pesos, integrales exactas de grado ≤ 2 (y, z, y·z) y comparación de reglas |
+| `numerics/test_newton.py` | Sistemas lineales y no lineales, Jacobiano analítico y numérico, convergencia, estancamiento, máximo de iteraciones, errores y problema parametrizado con λ fijo |
+| `numerics/test_continuacion.py` | Restricciones de arco esférica y cilíndrica, estado, opciones y contratos de trayectoria |
 | `unit/norms/ce/` | Tablas de materiales y coeficientes del Código Estructural |
 | `unit/norms/eurocode/` | Leyes constitutivas del hormigón y del acero |
 | `unit/application/test_almacen_catalogo.py` | Contrato genérico, identidad por norma, presets protegidos y entradas de usuario |

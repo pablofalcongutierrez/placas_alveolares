@@ -31,7 +31,7 @@ La arquitectura completa está en [`docs/architecture.md`](docs/architecture.md)
 presentation / infrastructure ──► application ──► domain ◄── norms ◄── main.py (composition root)
 ```
 
-- `domain/` — modelo estructural, mecánica, estados y contratos de comprobación. **No depende de nada.**
+- `domain/` — modelo estructural, mecánica, solvers numéricos, estados y contratos de comprobación. **No depende de nada.**
 - `norms/` — plugins normativos (implementaciones de normas). Dependen solo de `domain`.
 - `application/` — catálogo, casos de uso, DTOs y puertos. Depende solo de `domain`. **No importa `norms`.**
 - `infrastructure/`, `presentation/` — adaptadores y UI.
