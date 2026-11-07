@@ -108,12 +108,16 @@ def test_modelo_valido() -> None:
 
 
 def test_esfuerzos_internos_biaxiales() -> None:
-    """Los esfuerzos internos recogen axil y flexión en ambos ejes."""
-    esfuerzos = EsfuerzosInternos(n=1.0e5, m_y=2.0e8, m_z=-1.5e8)
+    """Los esfuerzos internos recogen axil, cortante y flexión biaxial."""
+    esfuerzos = EsfuerzosInternos(
+        n=1.0e5, m_y=2.0e8, m_z=-1.5e8, v_y=-3.0e4, v_z=4.0e4
+    )
 
     assert esfuerzos.n == pytest.approx(1.0e5)
     assert esfuerzos.m_y == pytest.approx(2.0e8)
     assert esfuerzos.m_z == pytest.approx(-1.5e8)
+    assert esfuerzos.v_y == pytest.approx(-3.0e4)
+    assert esfuerzos.v_z == pytest.approx(4.0e4)
 
 
 def test_esfuerzos_internos_por_defecto() -> None:
@@ -123,3 +127,5 @@ def test_esfuerzos_internos_por_defecto() -> None:
     assert esfuerzos.n == 0.0
     assert esfuerzos.m_y == 0.0
     assert esfuerzos.m_z == 0.0
+    assert esfuerzos.v_y == 0.0
+    assert esfuerzos.v_z == 0.0

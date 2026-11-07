@@ -59,6 +59,10 @@ El razonamiento y las alternativas descartadas de estas reglas están en [`docs/
 - Comentarios solo cuando aportan; evitar comentarios que repitan el código.
 - Sin `print` para depuración; usar el logger configurado.
 
+## Git
+
+- **No crear commits sin aprobación explícita del usuario.** Los cambios se dejan en el árbol de trabajo para que el usuario los revise antes de confirmarlos.
+
 ## Recetas
 
 ### Añadir una norma

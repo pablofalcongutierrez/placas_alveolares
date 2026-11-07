@@ -23,7 +23,8 @@ En un sistema de ejes generales, la deformación longitudinal de una fibra situa
 donde:
 
 - `ε₀`: deformación del eje de la pieza.
-- `κ_y`, `κ_z`: curvaturas alrededor de los ejes `y` y `z` respectivamente.
+- `κ_y`, `κ_z`: curvaturas alrededor de los ejes `y` y `z` respectivamente; su
+  signo se define en el apartado 2.2.
 - `(y, z)`: coordenadas de la fibra considerada.
 
 Para **flexión simple** en el plano `y-z` alrededor del eje `y`, la expresión se reduce a:
@@ -36,7 +37,8 @@ siendo:
 
 - `ε(z)`: deformación longitudinal en la fibra de cota `z`.
 - `ε_c`: deformación en el eje neutro (cota `z_c`).
-- `κ`: curvatura de la sección en el plano `y-z`.
+- `κ`: curvatura de la sección en el plano `y-z`. En flexión simple `κ = κ_y`;
+  un `κ` positivo corresponde a concavidad hacia abajo (tracción en `z > 0`).
 
 La hipótesis de sección plana garantiza la **compatibilidad de deformaciones** entre el hormigón
 y las armaduras: cada capa de refuerzo adopta la deformación de la fibra de hormigón situada a su
@@ -65,13 +67,14 @@ no es despreciable.
 
 Se adopta un sistema de ejes cartesianos ortogonales ligado a la sección transversal de la pieza:
 
-- **Eje `x`**: longitudinal de la pieza, positivo en el sentido del eje de la barra.
+- **Eje `x`**: longitudinal de la pieza, positivo saliendo del plano de la
+  sección hacia el observador.
 - **Eje `y`**: horizontal en el plano de la sección, positivo hacia la derecha.
 - **Eje `z`**: vertical en el plano de la sección, positivo hacia arriba.
 
-El origen `O` se sitúa en el **centro de gravedad de la sección bruta** de hormigón. Todas las
-propiedades geométricas (área, momentos estáticos, momentos de inercia) se definen respecto a este
-sistema de referencia.
+El sistema es **dextrógiro**: `x × y = z`. El origen `O` se sitúa en el **centro de
+gravedad de la sección bruta** de hormigón. Todas las propiedades geométricas (área, momentos
+estáticos, momentos de inercia) se definen respecto a este sistema de referencia.
 
 ![Figura 1: ejes de la sección en el plano y-z](../../../resources/images/specs/001/ejes_seccion_2d.png)
 
@@ -85,9 +88,15 @@ sistema de referencia.
 
 - **Deformaciones**: positivas en tracción y negativas en compresión.
 - **Esfuerzo axil `N`**: positivo a tracción.
-- **Curvatura `κ`**: positiva cuando produce tracción en las fibras inferiores (`z < 0`) y
-  compresión en las superiores (`z > 0`); es decir, curvatura de concavidad hacia arriba
-  (momento flector positivo según la convención habitual de flexión simple).
+- **Cortantes `V_y` y `V_z`**: definidos sobre la cara de normal `+x`. `V_y`
+  es positivo hacia `+y` (derecha) y `V_z` hacia `-z` (abajo). En la cara `-x`
+  se invierten. Con esta convención, `dMy/dx = V_z` y `dMz/dx = V_y`. Si se
+  integran tensiones tangenciales, `V_y = ∫τ_xy dA` y `V_z = −∫τ_xz dA`,
+  porque `z` es positivo hacia arriba.
+- **Curvaturas `κ_y` y `κ_z`**: definidas por el plano de deformaciones
+  `ε(y, z) = ε₀ + κ_y·z − κ_z·y`. `κ_y` es positiva cuando produce tracción
+  en `z > 0` y compresión en `z < 0` (concavidad hacia abajo). `κ_z` es
+  positiva cuando comprime `y > 0` y tracciona `y < 0`.
 - **Momento `My`** (alrededor del eje horizontal): positivo cuando produce tracción en las
   fibras inferiores (`z < 0`).
 - **Momento `Mz`** (alrededor del eje vertical): positivo cuando produce tracción en las fibras
@@ -103,6 +112,26 @@ sistema de referencia.
   de modo que `My` positivo comprime la fibra superior (`z > 0`) y `Mz` positivo comprime el
   lado `y < 0`. Si los ejes no son principales (`I_yz ≠ 0`), los términos de flexión se acoplan
   y la expresión debe resolverse con la matriz de inercia completa.
+
+  Para una sección elástica homogénea con ejes principales (`I_yz = 0`), la relación entre
+  curvaturas y momentos es:
+
+  ```
+  κ_y = −My / (E·I_y)        κ_z = −Mz / (E·I_z)
+  ```
+
+  es decir, `My = −E·I_y·κ_y` y `Mz = −E·I_z·κ_z`. Si los ejes no son principales, la relación
+  completa es:
+
+  ```
+  [N ]     [ A    0      0  ] [ε₀]
+  [My] = E [ 0   −I_y   I_yz] [κ_y]
+  [Mz]     [ 0    I_yz  −I_z] [κ_z]
+  ```
+
+  Los momentos `My` y `Mz` se definen por el lado traccionado, no por la regla de la mano
+  derecha; por eso las curvaturas aparecen con signo opuesto. Si los momentos se obtienen como
+  momentos vectoriales, deben cambiar de signo antes de introducirlos en el cálculo seccional.
 - **Canto útil `d`**: distancia desde la fibra extrema de compresión hasta el centro de gravedad
   de la armadura a tracción.
 
@@ -110,8 +139,8 @@ sistema de referencia.
 
 - El plano `y-z` y el sentido de los ejes se fijan en `domain/model/geometria.py`
   (ver [`plan.md`](plan.md#archivos-a-crear)).
-- Los esfuerzos con su signo se transportan en `EsfuerzosInternos(n, m_y, m_z)`
-  (`domain/model/acciones.py`).
+- Los esfuerzos con su signo se transportan en
+  `EsfuerzosInternos(n, m_y, m_z, v_y, v_z)` (`domain/model/acciones.py`).
 - Las propiedades geométricas biaxiales (`area`, `y_cdg`, `z_cdg`, `i_y`, `i_z`, `i_yz`) se
   calculan en `domain/mechanics/propiedades_seccion.py`.
 - La convención de unidades asociada es mm / N / MPa / N·mm
