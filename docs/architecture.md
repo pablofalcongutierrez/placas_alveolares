@@ -37,7 +37,7 @@ src/placas_alveolares/
       propiedades_seccion.py   # PropiedadesSeccion, propiedades_geometricas()
       laws.py              #   Protocolos: LeyTensionDeformacion, ModeloFluenciaRetraccion
       generic_laws.py      #   leyes físicas: elástica, elastoplástica
-      strain_solver.py     #   (N, M) → plano de deformaciones en equilibrio
+      solver_deformaciones.py  #   (N, M) → plano de deformaciones en equilibrio
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
     numerics/              # solvers genéricos, independientes de la física
@@ -47,7 +47,9 @@ src/placas_alveolares/
       continuacion/        #   contratos de continuación (λ, restricción de arco)
     value_objects/         # objetos de valor sin identidad
       coeficientes_parciales.py   # CoeficientesParciales (forma; valores en norms)
-    state/                 # StrainProfile, StressResultants, SectionState, History
+    state/                 # estados físicos
+      plano_deformaciones.py   #   ε₀, κ_y, κ_z
+      resultantes.py           #   N, M_y, M_z
     checking/              # contratos de comprobación
       kinds.py             #   CheckKind (vocabulario), NormId
       results.py           #   CheckResult (base), CalcStep
