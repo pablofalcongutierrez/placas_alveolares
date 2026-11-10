@@ -2,7 +2,11 @@
 
 - **Estado:** aceptado
 - **Fecha:** 2026-10-18
-- **Relacionado:** [0001](0001-frontera-mecanica-fisica-vs-normativa.md), [0004](0004-unidades-convencion-n-mm-mpa.md), [0008](0008-mallado-triangular-cuadratura.md)
+- **Relacionado:** [0001](0001-frontera-mecanica-fisica-vs-normativa.md), [0004](0004-unidades-convencion-n-mm-mpa.md), [0008](0008-mallado-triangular-cuadratura.md), [0013](0013-superposicion-geometrica-componentes.md)
+
+> **Actualización:** la regla de corrección tensional de componentes embebidos
+> de este ADR queda sustituida por la superposición geométrica explícita del
+> [ADR 0013](0013-superposicion-geometrica-componentes.md).
 
 ## Contexto
 

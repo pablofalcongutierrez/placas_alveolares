@@ -15,6 +15,7 @@ from placas_alveolares.domain.model.seccion import (
     CondicionAdherencia,
     Seccion,
 )
+from placas_alveolares.domain.model.tiempo import Tiempo
 
 
 def _hormigon() -> Hormigon:
@@ -22,8 +23,13 @@ def _hormigon() -> Hormigon:
 
 
 def _componentes() -> tuple[ComponenteSeccion, ...]:
-    placa = ComponenteSeccion(geometria=rectangulo(300.0, 500.0), material=_hormigon())
+    placa = ComponenteSeccion(
+        id="placa",
+        geometria=rectangulo(300.0, 500.0),
+        material=_hormigon(),
+    )
     armado = ComponenteSeccion(
+        id="armado",
         geometria=circulo(Punto(y=0.0, z=50.0), radio=21.85),
         material=AceroArmadura(
             fyk=500.0,
@@ -31,6 +37,7 @@ def _componentes() -> tuple[ComponenteSeccion, ...]:
             es=200_000.0,
             eps_uk=0.075,
         ),
+        componente_anfitrion_id="placa",
     )
     return (placa, armado)
 
@@ -45,6 +52,7 @@ def test_componente_exige_fase_no_negativa() -> None:
     """La fase de incorporación de un componente no puede ser negativa."""
     with pytest.raises(SeccionInvalida):
         ComponenteSeccion(
+            id="invalido",
             geometria=rectangulo(300.0, 500.0),
             material=_hormigon(),
             fase_incorporacion=-1,
@@ -66,7 +74,6 @@ def test_modelo_fase_activa_debe_estar_definida() -> None:
     with pytest.raises(ModeloInvalido):
         ModeloEstructural(
             seccion=seccion,
-            acciones=EsfuerzosInternos(m_y=2.0e8),
             fase_activa=1,
         )
 
@@ -75,17 +82,22 @@ def test_modelo_exige_fases_unicas() -> None:
     """No puede haber dos fases con el mismo índice."""
     seccion = Seccion(componentes=_componentes())
 
+    fase = Fase(
+        indice=0,
+        tiempo_inicio=Tiempo(0.0),
+        tiempo_fin=Tiempo(0.0),
+    )
     with pytest.raises(ModeloInvalido):
         ModeloEstructural(
             seccion=seccion,
-            acciones=EsfuerzosInternos(m_y=2.0e8),
-            fases=(Fase(0), Fase(0)),
+            fases=(fase, fase),
         )
 
 
 def test_modelo_exige_fases_de_componentes_definidas() -> None:
     """Todo componente debe referenciar una fase declarada en el modelo."""
     componente = ComponenteSeccion(
+        id="placa",
         geometria=rectangulo(300.0, 500.0),
         material=_hormigon(),
         fase_incorporacion=1,
@@ -93,18 +105,52 @@ def test_modelo_exige_fases_de_componentes_definidas() -> None:
     seccion = Seccion(componentes=(componente,))
 
     with pytest.raises(ModeloInvalido):
-        ModeloEstructural(seccion=seccion, acciones=EsfuerzosInternos(m_y=2.0e8))
+        ModeloEstructural(seccion=seccion)
 
 
 def test_modelo_valido() -> None:
     """Un modelo con la fase activa definida se construye sin error."""
     seccion = Seccion(componentes=_componentes())
-    modelo = ModeloEstructural(
-        seccion=seccion, acciones=EsfuerzosInternos(m_y=2.0e8)
-    )
+    modelo = ModeloEstructural(seccion=seccion)
 
     assert modelo.fase_activa == 0
     assert len(modelo.fases) == 1
+
+
+def test_seccion_rechaza_identificadores_repetidos() -> None:
+    """Los IDs de componente deben ser únicos."""
+    primero = ComponenteSeccion(
+        id="repetido",
+        geometria=rectangulo(100.0, 100.0),
+        material=_hormigon(),
+    )
+    segundo = ComponenteSeccion(
+        id="repetido",
+        geometria=rectangulo(100.0, 100.0, z_base=100.0),
+        material=_hormigon(),
+    )
+
+    with pytest.raises(SeccionInvalida):
+        Seccion(componentes=(primero, segundo))
+
+
+def test_componente_rechaza_identificador_vacio() -> None:
+    """El identificador no puede estar vacío."""
+    with pytest.raises(SeccionInvalida):
+        ComponenteSeccion(
+            id=" ",
+            geometria=rectangulo(100.0, 100.0),
+            material=_hormigon(),
+        )
+
+
+def test_seccion_busca_componente_por_id() -> None:
+    """La sección ofrece acceso tipado por identificador."""
+    seccion = Seccion(componentes=_componentes())
+
+    assert seccion.componente_por_id("placa").id == "placa"
+    with pytest.raises(SeccionInvalida):
+        seccion.componente_por_id("no_existe")
 
 
 def test_esfuerzos_internos_biaxiales() -> None:

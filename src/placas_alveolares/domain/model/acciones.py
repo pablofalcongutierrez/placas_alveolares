@@ -46,3 +46,14 @@ class EsfuerzosInternos:
     m_z: float = 0.0
     v_y: float = 0.0
     v_z: float = 0.0
+
+    @property
+    def es_nulo(self) -> bool:
+        """Indica si todos los esfuerzos son exactamente nulos."""
+        return (
+            self.n == 0.0
+            and self.m_y == 0.0
+            and self.m_z == 0.0
+            and self.v_y == 0.0
+            and self.v_z == 0.0
+        )

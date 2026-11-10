@@ -27,17 +27,22 @@ src/placas_alveolares/
     model/                 # modelo estructural (agnóstico de norma)
       geometria.py         #   Punto, Contorno, GeometriaContorno; helpers rectangulo(), circulo()
       materiales.py        #   Hormigon, AceroArmadura, AceroPretensado (propiedades físicas)
-      seccion.py           #   Seccion, ComponenteSeccion, CondicionAdherencia
+      seccion.py           #   Seccion, ComponenteSeccion, IDs y anfitrión geométrico
       acciones.py          #   EsfuerzosInternos
-      fases.py             #   Fase, activación por fase y por adherencia
-      modelo.py            #   ModeloEstructural
+      tiempo.py            #   Tiempo y UnidadTiempo (días/horas)
+      operaciones.py       #   OperacionFase y entradas de pretensado/pérdidas
+      fases.py             #   Fase con tiempos, acciones y operaciones
+      modelo.py            #   ModeloEstructural y validación temporal
     mechanics/             # motores físicos (funciones puras)
       mallado.py           #   Triangulo, mallar() (mapbox-earcut, aislado)
       integracion.py       #   ReglaCuadratura, Regla1Punto/Regla3Puntos, integrar()
       propiedades_seccion.py   # PropiedadesSeccion, propiedades_geometricas()
       laws.py              #   Protocolos: LeyTensionDeformacion, ModeloFluenciaRetraccion
       generic_laws.py      #   leyes físicas: elástica, elastoplástica
-      solver_deformaciones.py  #   (N, M) → plano de deformaciones en equilibrio
+      geometria_efectiva.py #   huecos de componentes embebidos en su anfitrión
+      preparacion_componentes.py # mallas y leyes por fase
+      solver_deformaciones.py  #   estado global → plano de deformaciones en equilibrio
+      analisis_fases.py    #   orquestación de operaciones, equilibrio e historial
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
     numerics/              # solvers genéricos, independientes de la física
@@ -50,6 +55,9 @@ src/placas_alveolares/
     state/                 # estados físicos
       plano_deformaciones.py   #   ε₀, κ_y, κ_z
       resultantes.py           #   N, M_y, M_z
+      estado_seccion.py        #   estado global y estado por componente en una fase
+      historial_seccion.py     #   secuencia inmutable de estados por fase
+      operaciones.py           #   operaciones concretas de tesado, pérdidas y adherencia
     checking/              # contratos de comprobación
       kinds.py             #   CheckKind (vocabulario), NormId
       results.py           #   CheckResult (base), CalcStep
@@ -128,6 +136,29 @@ distinguen dos familias:
 
 Detalle y alternativas en
 [`decisions/0011-solvers-no-lineales-desacoplados.md`](decisions/0011-solvers-no-lineales-desacoplados.md).
+
+### Estados, fases y operaciones
+
+El análisis evolutivo no se guarda en `Seccion` ni en `Fase`: se representa con
+un `EstadoSeccionFase` independiente. La sección y la fase son definiciones
+inmutables; el estado contiene el plano común, las referencias de activación,
+las deformaciones impuestas y el resumen del equilibrio.
+
+La deformación constitutiva de un componente adherido es:
+
+```text
+ε = plano_común − plano_referencia + deformación_impuesta
+```
+
+Las operaciones de fase son objetos que implementan `OperacionFase` y
+devuelven un estado nuevo. Se aplican al final de la fase, antes de la posible
+resolución de equilibrio. Las fases pueden ser instantáneas o tener duración,
+expresada en días u horas.
+
+Los componentes embebidos en hormigón declaran explícitamente su anfitrión. El
+hormigón se malla descontando geométricamente el contorno del componente
+embebido; no se aplica una corrección tensional equivalente. Los solapes
+parciales no declarados se rechazan.
 
 ### Contratos de comprobación
 

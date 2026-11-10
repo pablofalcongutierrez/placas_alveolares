@@ -56,6 +56,21 @@ class PlanoDeformaciones:
             kappa_z=self.kappa_z + otro.kappa_z,
         )
 
+    def __sub__(self, otro: PlanoDeformaciones) -> PlanoDeformaciones:
+        """Resta dos planos de deformaciones.
+
+        Args:
+            otro: Plano que se resta al actual.
+
+        Returns:
+            Un plano con la resta componente a componente.
+        """
+        return PlanoDeformaciones(
+            eps0=self.eps0 - otro.eps0,
+            kappa_y=self.kappa_y - otro.kappa_y,
+            kappa_z=self.kappa_z - otro.kappa_z,
+        )
+
 
 PLANO_NULO = PlanoDeformaciones(eps0=0.0, kappa_y=0.0, kappa_z=0.0)
 """Plano sin deformación, usado como valor por defecto."""

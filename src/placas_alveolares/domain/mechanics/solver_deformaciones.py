@@ -1,22 +1,17 @@
-"""Resolución del plano de deformaciones que equilibra una sección.
+"""Resolución del plano de deformaciones de una sección en una fase.
 
-El motor recibe las acciones internas ``(n, m_y, m_z)`` y una lista de
-componentes con su ley constitutiva y su deformación inicial. Resuelve el
-incremento común de deformaciones ``Δε`` tal que:
+El motor recibe las acciones internas ``(n, m_y, m_z)``, el estado global de
+la sección y los componentes preparados con su malla y su ley. Resuelve el
+plano común ``Φ = (ε₀, κ_y, κ_z)`` tal que:
 
 ``N_int = ∫σ dA``, ``My_int = −∫σ·z dA`` y ``Mz_int = ∫σ·y dA``
 
-igualen las acciones. La tensión de cada componente se evalúa con su
-deformación total, ``ε_inicial + Δε``, de modo que el mismo motor sirve para
-pretensado, fases constructivas o cualquier estado previo conocido.
-
-Las leyes son totales: no se modela histéresis ni descarga dependiente de la
-trayectoria.
+igualen las acciones. La deformación constitutiva de cada componente adherido
+es ``Φ − Φ_referencia + deformación_impuesta``. El método numérico se inyecta
+como :class:`SolverNoLineal`.
 """
 
 from __future__ import annotations
-
-from dataclasses import dataclass
 
 import numpy as np
 
@@ -25,18 +20,21 @@ from placas_alveolares.domain.mechanics.integracion import (
     REGLA_3_PUNTOS,
     ReglaCuadratura,
 )
-from placas_alveolares.domain.mechanics.laws import LeyTensionDeformacion
-from placas_alveolares.domain.mechanics.mallado import Triangulo, mallar
+from placas_alveolares.domain.mechanics.preparacion_componentes import (
+    ComponenteCalculo,
+)
 from placas_alveolares.domain.model.acciones import EsfuerzosInternos
-from placas_alveolares.domain.model.seccion import ComponenteSeccion
-from placas_alveolares.domain.numerics.newton import Newton
-from placas_alveolares.domain.numerics.opciones import OpcionesNewton
+from placas_alveolares.domain.model.seccion import CondicionAdherencia
+from placas_alveolares.domain.numerics.base import SolverNoLineal
 from placas_alveolares.domain.numerics.problema import (
     ProblemaNoLineal,
     Vector,
 )
+from placas_alveolares.domain.state.estado_seccion import (
+    EstadoSeccionFase,
+    ResumenEquilibrio,
+)
 from placas_alveolares.domain.state.plano_deformaciones import (
-    PLANO_NULO,
     PlanoDeformaciones,
 )
 from placas_alveolares.domain.state.resultantes import ResultantesSeccion
@@ -44,82 +42,41 @@ from placas_alveolares.domain.state.resultantes import ResultantesSeccion
 _DEFORMACION_REFERENCIA = 1.0e-3
 """Deformación de referencia para escalar las incógnitas del solver."""
 
-_OPCIONES_POR_DEFECTO = OpcionesNewton(
-    tolerancia_residuo=1.0e-8,
-    tolerancia_residuo_relativa=1.0e-8,
-    max_iteraciones=50,
-)
-"""Opciones de convergencia usadas cuando el llamador no aporta otras."""
-
-
-@dataclass(frozen=True, slots=True)
-class ComponenteConLey:
-    """Componente de cálculo con su ley constitutiva y su estado inicial.
-
-    Attributes:
-        malla: Triángulos del componente, precalculados una sola vez.
-        ley: Ley tensión-deformación del material.
-        deformacion_inicial: Plano de deformaciones que el componente ya tenía
-            antes del incremento analizado. Por defecto, plano nulo.
-    """
-
-    malla: tuple[Triangulo, ...]
-    ley: LeyTensionDeformacion
-    deformacion_inicial: PlanoDeformaciones = PLANO_NULO
-
-
-def componente_con_ley(
-    componente: ComponenteSeccion,
-    ley: LeyTensionDeformacion,
-    deformacion_inicial: PlanoDeformaciones = PLANO_NULO,
-) -> ComponenteConLey:
-    """Construye un componente de cálculo mallando su geometría.
-
-    Args:
-        componente: Componente del modelo estructural.
-        ley: Ley constitutiva que se asocia al componente.
-        deformacion_inicial: Plano de deformaciones previo del componente.
-            Por defecto, plano nulo.
-
-    Returns:
-        El componente listo para integrar tensiones, con su malla calculada.
-    """
-    return ComponenteConLey(
-        malla=mallar(componente.geometria),
-        ley=ley,
-        deformacion_inicial=deformacion_inicial,
-    )
-
 
 def resultantes_seccion(
-    incremental: PlanoDeformaciones,
-    componentes: tuple[ComponenteConLey, ...],
+    plano_comun: PlanoDeformaciones,
+    estado: EstadoSeccionFase,
+    componentes: tuple[ComponenteCalculo, ...],
     regla: ReglaCuadratura = REGLA_3_PUNTOS,
 ) -> ResultantesSeccion:
-    """Integra las tensiones normales de la sección.
+    """Integra las tensiones normales de los componentes adheridos.
 
     Args:
-        incremental: Incremento de deformaciones que se suma al estado inicial
-            de cada componente.
-        componentes: Componentes activos y adheridos, con su ley y su estado
-            inicial.
-        regla: Regla de cuadratura sobre cada triángulo. Por defecto la de tres
-            puntos.
+        plano_comun: Plano cinemático de la sección.
+        estado: Estado que contiene referencias y deformaciones impuestas.
+        componentes: Componentes activos con malla y ley.
+        regla: Regla de cuadratura sobre cada triángulo.
 
     Returns:
-        Las resultantes ``(n, m_y, m_z)`` de las tensiones normales, con la
-        convención de signos del proyecto.
+        Las resultantes ``(n, m_y, m_z)`` de las tensiones normales.
     """
     n = 0.0
     m_y = 0.0
     m_z = 0.0
     for componente in componentes:
-        total = componente.deformacion_inicial + incremental
+        estado_componente = estado.componente_requerido(
+            componente.componente_id
+        )
+        if estado_componente.adherencia is not CondicionAdherencia.ADHERIDO:
+            continue
+        constitutiva = estado_componente.deformacion_constitutiva(
+            plano_comun
+        )
         for triangulo in componente.malla:
             for evaluacion in regla.evaluaciones(triangulo):
                 punto = evaluacion.punto
                 tension = componente.ley.tension(
-                    total.deformacion(punto.y, punto.z)
+                    constitutiva.deformacion(punto.y, punto.z)
                 )
                 peso = evaluacion.peso
                 n += tension * peso
@@ -128,48 +85,51 @@ def resultantes_seccion(
     return ResultantesSeccion(n=n, m_y=m_y, m_z=m_z)
 
 
-def resolver_plano_deformaciones(
+def resolver_equilibrio_seccion(
     acciones: EsfuerzosInternos,
-    componentes: tuple[ComponenteConLey, ...],
-    opciones: OpcionesNewton | None = None,
-) -> PlanoDeformaciones:
-    """Resuelve el incremento de deformaciones que equilibra las acciones.
-
-    El incremento se normaliza antes de pasarlo a Newton: la deformación axial
-    se escala con una deformación de referencia y las curvaturas con esa misma
-    deformación dividida por el ancho y el alto de la sección. El residuo se
-    normaliza con una fuerza y un momento de referencia deducidos de las
-    acciones y del estado inicial. Esto mantiene el problema bien condicionado
-    tanto con cargas grandes como con pretensado autoequilibrado.
+    estado: EstadoSeccionFase,
+    componentes: tuple[ComponenteCalculo, ...],
+    solver: SolverNoLineal,
+) -> EstadoSeccionFase:
+    """Resuelve el plano común que equilibra las acciones de una fase.
 
     Args:
-        acciones: Esfuerzos internos que debe equilibrar la sección. Solo se
-            usan ``n``, ``m_y`` y ``m_z``; los cortantes no intervienen en el
-            plano de deformaciones normales.
-        componentes: Componentes activos y adheridos, con su ley y su estado
-            inicial.
-        opciones: Opciones de convergencia. Si es ``None`` se usan las
-            opciones por defecto del módulo.
+        acciones: Esfuerzos internos que debe equilibrar la sección.
+        estado: Estado de la fase antes del equilibrio.
+        componentes: Componentes activos con malla y ley.
+        solver: Solver no lineal inyectado.
 
     Returns:
-        El incremento común de deformaciones. El plano total de un componente
-        se obtiene sumando su ``deformacion_inicial`` a este incremento.
+        Un estado nuevo con el plano común y el resumen de equilibrio.
 
     Raises:
-        ErrorValidacion: Si no hay componentes o la sección no tiene
+        ErrorValidacion: Si no hay componentes adheridos o la sección no tiene
             dimensiones positivas.
-        ErrorNoConvergencia: Si Newton no alcanza el equilibrio.
+        ErrorNoConvergencia: Si el solver no alcanza el equilibrio.
     """
-    if not componentes:
+    adheridos = tuple(
+        componente
+        for componente in componentes
+        if estado.componente_requerido(
+            componente.componente_id
+        ).adherencia
+        is CondicionAdherencia.ADHERIDO
+    )
+    if not adheridos:
         raise ErrorValidacion(
-            "El cálculo de deformaciones necesita al menos un componente."
+            "El equilibrio de la sección necesita al menos un componente "
+            "adherido."
         )
 
-    ancho, alto = _dimensiones(componentes)
+    ancho, alto = _dimensiones(adheridos)
     kappa_y_ref = _DEFORMACION_REFERENCIA / alto
     kappa_z_ref = _DEFORMACION_REFERENCIA / ancho
 
-    iniciales = resultantes_seccion(PLANO_NULO, componentes)
+    iniciales = resultantes_seccion(
+        estado.plano_comun,
+        estado,
+        componentes,
+    )
     fuerza_ref = max(abs(iniciales.n), abs(acciones.n), 1.0)
     momento_ref = max(
         abs(iniciales.m_y),
@@ -186,9 +146,16 @@ def resolver_plano_deformaciones(
             kappa_z=float(x[2]) * kappa_z_ref,
         )
 
+    def a_vector(plano: PlanoDeformaciones) -> tuple[float, float, float]:
+        return (
+            plano.eps0 / _DEFORMACION_REFERENCIA,
+            plano.kappa_y / kappa_y_ref,
+            plano.kappa_z / kappa_z_ref,
+        )
+
     def residuo(x: Vector) -> Vector:
         plano = a_plano(x)
-        resultantes = resultantes_seccion(plano, componentes)
+        resultantes = resultantes_seccion(plano, estado, componentes)
         return np.array(
             [
                 (resultantes.n - acciones.n) / fuerza_ref,
@@ -198,18 +165,23 @@ def resolver_plano_deformaciones(
             dtype=np.float64,
         )
 
-    opciones_efectivas = (
-        _OPCIONES_POR_DEFECTO if opciones is None else opciones
-    )
-    resultado = Newton(opciones=opciones_efectivas).resolver(
+    resultado = solver.resolver(
         ProblemaNoLineal(residuo=residuo),
-        (0.0, 0.0, 0.0),
+        a_vector(estado.plano_comun),
     )
-    return a_plano(np.asarray(resultado.x, dtype=np.float64))
+    plano = a_plano(np.asarray(resultado.x, dtype=np.float64))
+    resultantes = resultantes_seccion(plano, estado, componentes)
+    resumen = ResumenEquilibrio(
+        resultantes=resultantes,
+        iteraciones=resultado.iteraciones,
+        norma_residuo=resultado.norma_residuo,
+        norma_residuo_inicial=resultado.norma_residuo_inicial,
+    )
+    return estado.con_plano_y_resumen(plano, resumen)
 
 
 def _dimensiones(
-    componentes: tuple[ComponenteConLey, ...],
+    componentes: tuple[ComponenteCalculo, ...],
 ) -> tuple[float, float]:
     """Ancho y alto del contorno envolvente de los componentes.
 

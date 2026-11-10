@@ -15,11 +15,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from placas_alveolares.domain.errores import FaseInvalida
+from placas_alveolares.domain.model.acciones import EsfuerzosInternos
+from placas_alveolares.domain.model.operaciones import OperacionFase
 from placas_alveolares.domain.model.seccion import (
     ComponenteSeccion,
     CondicionAdherencia,
     Seccion,
 )
+from placas_alveolares.domain.model.tiempo import Tiempo
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,19 +31,43 @@ class Fase:
 
     Attributes:
         indice: Orden de la fase en la secuencia constructiva (0, 1, 2…).
+        tiempo_inicio: Instante inicial de la fase.
+        tiempo_fin: Instante final. Si coincide con el inicial, la fase es
+            instantánea.
+        acciones: Acciones totales vigentes al final de la fase.
+        operaciones: Operaciones aplicadas al final, en orden.
+        resolver_equilibrio: Si es ``True``, se resuelve el equilibrio después
+            de aplicar las operaciones. Por defecto ``True``.
         nombre: Descripción legible de la fase. Por defecto vacío.
 
     Raises:
-        FaseInvalida: Si ``indice`` es negativo.
+        FaseInvalida: Si el índice es negativo, el intervalo temporal no es
+            válido o una fase sin equilibrio declara acciones no nulas.
     """
 
     indice: int
+    tiempo_inicio: Tiempo
+    tiempo_fin: Tiempo
+    acciones: EsfuerzosInternos = EsfuerzosInternos()
+    operaciones: tuple[OperacionFase, ...] = ()
+    resolver_equilibrio: bool = True
     nombre: str = ""
 
     def __post_init__(self) -> None:
         if self.indice < 0:
             raise FaseInvalida(
                 f"El índice de fase no puede ser negativo; se recibió {self.indice}."
+            )
+        if self.tiempo_inicio.dias > self.tiempo_fin.dias:
+            raise FaseInvalida(
+                "El tiempo final de la fase no puede ser anterior al inicial; "
+                f"se recibió [{self.tiempo_inicio.dias}, "
+                f"{self.tiempo_fin.dias}] días."
+            )
+        if not self.resolver_equilibrio and not self.acciones.es_nulo:
+            raise FaseInvalida(
+                "Una fase sin resolución de equilibrio no puede contener "
+                "acciones externas."
             )
 
 
