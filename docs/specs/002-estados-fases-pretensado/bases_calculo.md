@@ -27,7 +27,7 @@ Las operaciones se aplican al final del intervalo. Si la fase resuelve, el
 equilibrio se calcula en `tiempo_fin`:
 
 ```text
-N_int = ∫σ dA,  M_y,int = −∫σ·z dA,  M_z,int = ∫σ·y dA
+N_int = ∫σ dA,  M_y,int = ∫σ·z dA,  M_z,int = −∫σ·y dA
 ```
 
 Las fases de tesado o pérdidas pueden no resolver equilibrio y conservar el

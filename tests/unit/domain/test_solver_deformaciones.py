@@ -152,7 +152,7 @@ def _resolver(
 
 
 def test_resultantes_elasticas() -> None:
-    """Las resultantes reproducen N = EA·ε₀, My = −E·Iy·κy y Mz = −E·Iz·κz."""
+    """Las resultantes reproducen N = EA·ε₀, My = E·Iy·κy y Mz = E·Iz·κz."""
     par = _componente("hormigon")
     estado = _estado(_estados((par,)))
     plano = PlanoDeformaciones(
@@ -165,10 +165,10 @@ def test_resultantes_elasticas() -> None:
         _MODULO_HORMIGON * _AREA * 1.0e-4, rel=1e-9
     )
     assert resultantes.m_y == pytest.approx(
-        -_MODULO_HORMIGON * _INERCIA_Y * 2.0e-6, rel=1e-9
+        _MODULO_HORMIGON * _INERCIA_Y * 2.0e-6, rel=1e-9
     )
     assert resultantes.m_z == pytest.approx(
-        -_MODULO_HORMIGON * _INERCIA_Z * -3.0e-6, rel=1e-9
+        _MODULO_HORMIGON * _INERCIA_Z * -3.0e-6, rel=1e-9
     )
 
 
@@ -207,13 +207,13 @@ def test_axil_puro() -> None:
 
 
 def test_flexion_pura_my() -> None:
-    """Bajo My puro la curvatura y las deformaciones extremas son elásticas."""
+    """My positivo tracciona la fibra superior y comprime la inferior."""
     par = _componente("hormigon")
     momento = 1.0e8
 
     estado = _resolver(EsfuerzosInternos(m_y=momento), (par,))
 
-    curvatura = -momento / (_MODULO_HORMIGON * _INERCIA_Y)
+    curvatura = momento / (_MODULO_HORMIGON * _INERCIA_Y)
     assert estado.plano_comun.eps0 == pytest.approx(0.0, abs=1e-12)
     assert estado.plano_comun.kappa_y == pytest.approx(curvatura, rel=1e-9)
     assert estado.plano_comun.kappa_z == pytest.approx(0.0, abs=1e-12)
@@ -223,13 +223,13 @@ def test_flexion_pura_my() -> None:
 
 
 def test_flexion_pura_mz() -> None:
-    """Bajo Mz puro la tracción aparece en y > 0."""
+    """Mz positivo comprime la fibra con y > 0."""
     par = _componente("hormigon")
     momento = 1.0e8
 
     estado = _resolver(EsfuerzosInternos(m_z=momento), (par,))
 
-    curvatura = -momento / (_MODULO_HORMIGON * _INERCIA_Z)
+    curvatura = momento / (_MODULO_HORMIGON * _INERCIA_Z)
     assert estado.plano_comun.eps0 == pytest.approx(0.0, abs=1e-12)
     assert estado.plano_comun.kappa_y == pytest.approx(0.0, abs=1e-12)
     assert estado.plano_comun.kappa_z == pytest.approx(curvatura, rel=1e-9)
@@ -249,10 +249,10 @@ def test_flexion_biaxial() -> None:
         1.0e6 / (_MODULO_HORMIGON * _AREA), rel=1e-9
     )
     assert estado.plano_comun.kappa_y == pytest.approx(
-        -1.0e8 / (_MODULO_HORMIGON * _INERCIA_Y), rel=1e-9
+        1.0e8 / (_MODULO_HORMIGON * _INERCIA_Y), rel=1e-9
     )
     assert estado.plano_comun.kappa_z == pytest.approx(
-        -1.0e8 / (_MODULO_HORMIGON * _INERCIA_Z), rel=1e-9
+        1.0e8 / (_MODULO_HORMIGON * _INERCIA_Z), rel=1e-9
     )
 
 
@@ -416,7 +416,7 @@ def test_ley_elastoplastica_equilibra_seccion_parcialmente_plastificada() -> Non
     assert resultantes.n == pytest.approx(acciones.n, abs=1.0)
     assert resultantes.m_y == pytest.approx(acciones.m_y, abs=100.0)
     assert _componentes((par,))[0].ley.tension(
-        estado.plano_comun.deformacion(0.0, _ALTO / 2.0)
+        estado.plano_comun.deformacion(0.0, -_ALTO / 2.0)
     ) == pytest.approx(-30.0)
 
 

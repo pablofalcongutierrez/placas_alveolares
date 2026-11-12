@@ -4,7 +4,7 @@ El motor recibe las acciones internas ``(n, m_y, m_z)``, el estado global de
 la sección y los componentes preparados con su malla y su ley. Resuelve el
 plano común ``Φ = (ε₀, κ_y, κ_z)`` tal que:
 
-``N_int = ∫σ dA``, ``My_int = −∫σ·z dA`` y ``Mz_int = ∫σ·y dA``
+``N_int = ∫σ dA``, ``My_int = ∫σ·z dA`` y ``Mz_int = −∫σ·y dA``
 
 igualen las acciones. La deformación constitutiva de cada componente adherido
 es ``Φ − Φ_referencia + deformación_impuesta``. El método numérico se inyecta
@@ -80,8 +80,8 @@ def resultantes_seccion(
                 )
                 peso = evaluacion.peso
                 n += tension * peso
-                m_y -= tension * punto.z * peso
-                m_z += tension * punto.y * peso
+                m_y += tension * punto.z * peso
+                m_z -= tension * punto.y * peso
     return ResultantesSeccion(n=n, m_y=m_y, m_z=m_z)
 
 

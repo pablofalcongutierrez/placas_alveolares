@@ -7,11 +7,12 @@ cara ``-x`` se invierten:
 - Esfuerzo axil ``n`` positivo a **tracción** (fuerza hacia ``+x``).
 - Cortante ``v_y`` positivo hacia ``+y`` (derecha).
 - Cortante ``v_z`` positivo hacia ``-z`` (abajo).
-- Momento ``m_y`` positivo cuando produce tracción en las fibras inferiores
-  (``z < 0``).
-- Momento ``m_z`` positivo cuando produce tracción en las fibras con ``y > 0``.
+- Momento ``m_y`` positivo cuando produce compresión en las fibras inferiores
+  (``z < 0``) y tracción en las superiores (``z > 0``).
+- Momento ``m_z`` positivo cuando produce compresión en las fibras con
+  ``y > 0`` y tracción en las fibras con ``y < 0``.
 
-Con esta convención se cumple ``dm_y/dx = v_z`` y ``dm_z/dx = v_y``. Si se
+Con esta convención se cumple ``dm_y/dx = -v_z`` y ``dm_z/dx = -v_y``. Si se
 integran tensiones tangenciales, ``v_y = ∫τ_xy dA`` y ``v_z = −∫τ_xz dA``,
 porque ``z`` es positivo hacia arriba.
 

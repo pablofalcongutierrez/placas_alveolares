@@ -90,48 +90,48 @@ estáticos, momentos de inercia) se definen respecto a este sistema de referenci
 - **Esfuerzo axil `N`**: positivo a tracción.
 - **Cortantes `V_y` y `V_z`**: definidos sobre la cara de normal `+x`. `V_y`
   es positivo hacia `+y` (derecha) y `V_z` hacia `-z` (abajo). En la cara `-x`
-  se invierten. Con esta convención, `dMy/dx = V_z` y `dMz/dx = V_y`. Si se
+  se invierten. Con esta convención, `dMy/dx = −V_z` y `dMz/dx = −V_y`. Si se
   integran tensiones tangenciales, `V_y = ∫τ_xy dA` y `V_z = −∫τ_xz dA`,
   porque `z` es positivo hacia arriba.
 - **Curvaturas `κ_y` y `κ_z`**: definidas por el plano de deformaciones
   `ε(y, z) = ε₀ + κ_y·z − κ_z·y`. `κ_y` es positiva cuando produce tracción
   en `z > 0` y compresión en `z < 0` (concavidad hacia abajo). `κ_z` es
   positiva cuando comprime `y > 0` y tracciona `y < 0`.
-- **Momento `My`** (alrededor del eje horizontal): positivo cuando produce tracción en las
-  fibras inferiores (`z < 0`).
-- **Momento `Mz`** (alrededor del eje vertical): positivo cuando produce tracción en las fibras
-  con `y > 0`.
+- **Momento `My`** (alrededor del eje horizontal): positivo cuando produce compresión en las
+  fibras inferiores (`z < 0`) y tracción en las superiores (`z > 0`).
+- **Momento `Mz`** (alrededor del eje vertical): positivo cuando produce compresión en las fibras
+  con `y > 0` y tracción en las fibras con `y < 0`.
 - **Tensiones normales `σ`**: positivas a tracción y negativas a compresión. Para una sección
   homogénea no fisurada sometida a axil y flexión biaxial, con ejes principales de inercia
   (`I_yz = 0`), la distribución es lineal:
 
   ```
-  σ(y, z) = N / A − My · z / I_y + Mz · y / I_z
+  σ(y, z) = N / A + My · z / I_y − Mz · y / I_z
   ```
 
-  de modo que `My` positivo comprime la fibra superior (`z > 0`) y `Mz` positivo comprime el
-  lado `y < 0`. Si los ejes no son principales (`I_yz ≠ 0`), los términos de flexión se acoplan
+  de modo que `My` positivo comprime la fibra inferior (`z < 0`) y `Mz` positivo comprime el
+  lado `y > 0`. Si los ejes no son principales (`I_yz ≠ 0`), los términos de flexión se acoplan
   y la expresión debe resolverse con la matriz de inercia completa.
 
   Para una sección elástica homogénea con ejes principales (`I_yz = 0`), la relación entre
   curvaturas y momentos es:
 
   ```
-  κ_y = −My / (E·I_y)        κ_z = −Mz / (E·I_z)
+  κ_y = My / (E·I_y)        κ_z = Mz / (E·I_z)
   ```
 
-  es decir, `My = −E·I_y·κ_y` y `Mz = −E·I_z·κ_z`. Si los ejes no son principales, la relación
+  es decir, `My = E·I_y·κ_y` y `Mz = E·I_z·κ_z`. Si los ejes no son principales, la relación
   completa es:
 
   ```
   [N ]     [ A    0      0  ] [ε₀]
-  [My] = E [ 0   −I_y   I_yz] [κ_y]
-  [Mz]     [ 0    I_yz  −I_z] [κ_z]
+  [My] = E [ 0    I_y  −I_yz] [κ_y]
+  [Mz]     [ 0   −I_yz   I_z] [κ_z]
   ```
 
-  Los momentos `My` y `Mz` se definen por el lado traccionado, no por la regla de la mano
-  derecha; por eso las curvaturas aparecen con signo opuesto. Si los momentos se obtienen como
-  momentos vectoriales, deben cambiar de signo antes de introducirlos en el cálculo seccional.
+  Los momentos `My` y `Mz` se definen por el lado comprimido, no por la regla de la mano
+  derecha. Si los momentos se obtienen como momentos vectoriales, deben cambiar de signo antes
+  de introducirlos en el cálculo seccional.
 - **Canto útil `d`**: distancia desde la fibra extrema de compresión hasta el centro de gravedad
   de la armadura a tracción.
 
