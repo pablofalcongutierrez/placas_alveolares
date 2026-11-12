@@ -12,6 +12,9 @@ from placas_alveolares.domain.mechanics.geometria_efectiva import (
 )
 from placas_alveolares.domain.mechanics.generic_laws import LeyElastica
 from placas_alveolares.domain.mechanics.laws import LeyTensionDeformacion
+from placas_alveolares.domain.mechanics.proveedor_leyes_elasticas import (
+    ProveedorLeyesElasticas,
+)
 from placas_alveolares.domain.model.fases import (
     Fase,
     componentes_activos,
@@ -139,10 +142,7 @@ def _solver() -> Newton:
 def test_transferencia_con_hueco_geometrico_real() -> None:
     """El hormigón se malla descontando el cordón y no se duplica material."""
     modelo = _modelo()
-    proveedor = _ProveedorLeyes(
-        ley_hormigon=LeyElastica(33_000.0),
-        ley_acero=LeyElastica(_MODULO_ACERO),
-    )
+    proveedor = ProveedorLeyesElasticas()
 
     historial = analizar_fases(modelo, proveedor, _solver())
 
