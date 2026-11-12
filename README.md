@@ -6,7 +6,7 @@ Herramienta de escritorio de **cálculo seccional estructural**, desarrollada co
 
 Proyecto **en desarrollo**. La base arquitectónica y el núcleo geométrico/mecánico ya están operativos; la primera comprobación completa está en curso.
 
-- **Implementado:** modelo estructural por componentes y fases, mallado y cuadratura, propiedades de sección, leyes constitutivas genéricas, leyes del hormigón y del acero según eurocódigo, tablas de materiales y coeficientes del Código Estructural, y catálogo genérico de datos normativos.
+- **Implementado:** modelo estructural por componentes y fases, mallado y cuadratura, propiedades de sección, leyes constitutivas genéricas, leyes del hormigón y del acero según eurocódigo, tablas de materiales y coeficientes del Código Estructural, catálogo genérico de datos normativos y contrato portable de visualización alineada de deformaciones y tensiones.
 - **En curso:** comprobación de flexión ELU, catálogo de comprobaciones y casos de uso.
 - **Pendiente:** cortante, pretensado y evolución temporal, ELS, persistencia del modelo y UI completa (la ventana actual es un placeholder).
 

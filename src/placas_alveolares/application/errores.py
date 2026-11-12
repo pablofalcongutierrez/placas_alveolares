@@ -23,3 +23,7 @@ class EntradaCatalogoInvalida(ErrorAplicacion):
 
 class EntradaDuplicada(ErrorAplicacion):
     """Preset normativo registrado más de una vez con la misma clave."""
+
+
+class VisualizacionInvalida(ErrorAplicacion):
+    """Configuración de visualización incompatible con los datos disponibles."""

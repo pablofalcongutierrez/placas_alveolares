@@ -63,6 +63,20 @@ El razonamiento y las alternativas descartadas de estas reglas están en [`docs/
 
 - **No crear commits sin aprobación explícita del usuario.** Los cambios se dejan en el árbol de trabajo para que el usuario los revise antes de confirmarlos.
 
+### Rama de visualización en desarrollo
+
+La rama `feature/visualizador-tensiones` es un **espacio de trabajo no
+consolidado** para el visualizador de deformaciones y tensiones. Se conserva
+para consultar y ejecutar el cuaderno
+`notebooks/ejemplo_2_visualizacion_tensiones.ipynb`, pero no debe tomarse como
+base de nuevos desarrollos.
+
+- **No crear nuevas ramas desde `feature/visualizador-tensiones`.**
+- Crear cualquier rama nueva desde `main`, salvo instrucción explícita del
+  usuario.
+- No integrar esta rama en `main` sin revisión y aprobación previas.
+- Si finalmente se integra y la nota deja de aplicar, eliminar este apartado.
+
 ## Recetas
 
 ### Añadir una norma

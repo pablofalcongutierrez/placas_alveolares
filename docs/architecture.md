@@ -42,6 +42,8 @@ src/placas_alveolares/
       geometria_efectiva.py #   huecos de componentes embebidos en su anfitrión
       preparacion_componentes.py # mallas y leyes por fase
       solver_deformaciones.py  #   estado global → plano de deformaciones en equilibrio
+      alineacion_deformaciones.py # sistema girado con la línea neutra horizontal
+      campo_tensiones.py   #   deformación constitutiva y tensión por fibra
       analisis_fases.py    #   orquestación de operaciones, equilibrio e historial
       moment_curvature.py
       time_evolution.py    #   integración temporal con modelo inyectado
@@ -73,11 +75,13 @@ src/placas_alveolares/
     en1168/                # placa alveolar: cortante específico
     _shared/               # fórmulas normativas realmente repetidas (regla de tres)
   application/
-    errores.py             # ErrorAplicacion, EntradaProtegida, EntradaDuplicada
+    errores.py             # ErrorAplicacion, EntradaProtegida, VisualizacionInvalida
     catalog.py             # CheckCatalog + descriptores
     almacen_catalogo.py    # AlmacenCatalogo[T]: implementación genérica en memoria
-    use_cases/             # run_check, compare_norms, analyze_section
+    use_cases/             # run_check, compare_norms, analyze_section,
+                           # visualizar_tensiones
     dtos/
+      visualizacion_tensiones.py # contrato portable para cualquier UI
     ports/
       catalogo.py          # Catalogo[T]: contrato genérico de biblioteca
       entradas_catalogo.py # EntradaCatalogo[T], OrigenEntrada
@@ -159,6 +163,32 @@ Los componentes embebidos en hormigón declaran explícitamente su anfitrión. E
 hormigón se malla descontando geométricamente el contorno del componente
 embebido; no se aplica una corrección tensional equivalente. Los solapes
 parciales no declarados se rechazan.
+
+### Visualización alineada de estados
+
+La visualización de deformaciones y tensiones es una **proyección del
+historial**, no un cálculo nuevo:
+
+```text
+ModeloEstructural + HistorialSeccion + ProveedorLeyes
+                  → construir_evolucion_alineada()
+                  → EvolucionAlineadaVista (DTO)
+                  → PySide / web / Electron / exportación
+```
+
+- `domain/mechanics/alineacion_deformaciones.py` gira la sección para dejar la
+  línea neutra horizontal y expone la transformación `(y, z) ↔ (u, v)`.
+- `domain/mechanics/campo_tensiones.py` evalúa la deformación constitutiva y la
+  tensión de una fibra.
+- `application/use_cases/visualizar_tensiones.py` compone geometría efectiva,
+  perfiles, rangos y metadatos de fase.
+- `application/dtos/visualizacion_tensiones.py` publica magnitudes físicas
+  (mm, tanto por uno y MPa) sin tipos de UI ni conceptos de dibujo.
+
+Cada interfaz implementa su propio renderizador. No se comparte un widget ni
+una lista de comandos de dibujo; se comparte el contrato de datos. Detalle en
+[`decisions/0014-visualizacion-dto-portable.md`](decisions/0014-visualizacion-dto-portable.md)
+y [`specs/003-visualizacion-tensiones/`](specs/003-visualizacion-tensiones/).
 
 ### Contratos de comprobación
 

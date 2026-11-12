@@ -65,9 +65,12 @@ aplicación. La composición real y los casos de uso se incorporarán a
 | `test_integracion.py` | Suma de pesos, integrales exactas de grado ≤ 2 (y, z, y·z) y comparación de reglas |
 | `numerics/test_newton.py` | Sistemas lineales y no lineales, Jacobiano analítico y numérico, convergencia, estancamiento, máximo de iteraciones, errores y problema parametrizado con λ fijo |
 | `numerics/test_continuacion.py` | Restricciones de arco esférica y cilíndrica, estado, opciones y contratos de trayectoria |
+| `test_alineacion_deformaciones.py` | Rotación, línea neutra en `v = 0`, transformación inversa y curvatura nula |
+| `test_campo_tensiones.py` | Plano constitutivo, referencia e influencia del pretensado en la tensión |
 | `unit/norms/ce/` | Tablas de materiales y coeficientes del Código Estructural |
 | `unit/norms/eurocode/` | Leyes constitutivas del hormigón y del acero |
 | `unit/application/test_almacen_catalogo.py` | Contrato genérico, identidad por norma, presets protegidos y entradas de usuario |
+| `integration/test_visualizacion_tensiones.py` | DTO alineado, fases, huecos, cordones enfundados y perfiles |
 
 ## 3. Configuración
 
