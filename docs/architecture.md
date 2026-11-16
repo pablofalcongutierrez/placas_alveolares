@@ -26,7 +26,7 @@ src/placas_alveolares/
     errores.py             # jerarquía de errores: ErrorDominio, ErrorValidacion, ErrorCalculo
     model/                 # modelo estructural (agnóstico de norma)
       geometria.py         #   Punto, Contorno, GeometriaContorno; helpers rectangulo(), circulo()
-      materiales.py        #   Hormigon, AceroArmadura, AceroPretensado (propiedades físicas)
+      materiales.py        #   Hormigon, AceroArmadura y AceroPretensado (propiedades físicas y características)
       seccion.py           #   Seccion, ComponenteSeccion, IDs y anfitrión geométrico
       acciones.py          #   EsfuerzosInternos
       tiempo.py            #   Tiempo y UnidadTiempo (días/horas)

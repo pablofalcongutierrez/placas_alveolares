@@ -23,8 +23,9 @@ from placas_alveolares.domain.model.seccion import ComponenteSeccion
 from placas_alveolares.domain.value_objects.coeficientes_parciales import (
     CoeficientesParciales,
 )
-from placas_alveolares.norms.errores import CasoFueraDeAlcance
 from placas_alveolares.norms.eurocode.laws import (
+    ley_acero_activo_bilineal,
+    ley_acero_activo_endurecida,
     ley_acero_pasivo_bilineal,
     ley_acero_pasivo_endurecida,
     ley_hormigon_bilineal,
@@ -46,6 +47,13 @@ class DiagramaAceroPasivoELU(StrEnum):
     ENDURECIDA = "endurecida"
 
 
+class DiagramaAceroActivoELU(StrEnum):
+    """Diagramas de cálculo del acero activo admitidos en ELU."""
+
+    BILINEAL = "bilineal"
+    ENDURECIDA = "endurecida"
+
+
 def _coeficientes_recomendados() -> CoeficientesParciales:
     """Coeficientes parciales recomendados por EN 1992-1-1."""
     return CoeficientesParciales(gamma_c=1.5, gamma_s=1.15)
@@ -59,6 +67,7 @@ class ConfiguracionLeyesELUEurocodigo:
         coeficientes: Coeficientes parciales de seguridad de los materiales.
         diagrama_hormigon: Diagrama de cálculo del hormigón.
         diagrama_acero_pasivo: Diagrama de cálculo del acero pasivo.
+        diagrama_acero_activo: Diagrama de cálculo del acero activo.
     """
 
     coeficientes: CoeficientesParciales = field(
@@ -69,6 +78,9 @@ class ConfiguracionLeyesELUEurocodigo:
     )
     diagrama_acero_pasivo: DiagramaAceroPasivoELU = (
         DiagramaAceroPasivoELU.BILINEAL
+    )
+    diagrama_acero_activo: DiagramaAceroActivoELU = (
+        DiagramaAceroActivoELU.ENDURECIDA
     )
 
 
@@ -101,22 +113,16 @@ class ProveedorLeyesELUEurocodigo:
             La ley tensión-deformación de cálculo aplicable.
 
         Raises:
-            CasoFueraDeAlcance: Si el componente es de acero de pretensado,
-                para el que aún no existe un diagrama ELU completo, o si el
-                acero pasivo no tiene rama plástica con los parámetros dados.
+            CasoFueraDeAlcance: Si el acero pasivo o activo no tiene rama
+                plástica con los parámetros dados.
         """
         match componente.material:
             case Hormigon() as hormigon:
                 return self._ley_hormigon(hormigon)
             case AceroArmadura() as acero:
                 return self._ley_acero_pasivo(acero)
-            case AceroPretensado():
-                raise CasoFueraDeAlcance(
-                    "El proveedor ELU del Eurocódigo no dispone todavía de "
-                    "una ley de pretensado: AceroPretensado solo contiene "
-                    "fpk y ep, insuficientes para definir el diagrama de "
-                    f"cálculo del componente '{componente.id}'."
-                )
+            case AceroPretensado() as acero:
+                return self._ley_acero_activo(acero)
             case _ as material:
                 assert_never(material)
 
@@ -142,5 +148,19 @@ class ProveedorLeyesELUEurocodigo:
                 return ley_acero_pasivo_bilineal(acero, gamma_s)
             case DiagramaAceroPasivoELU.ENDURECIDA:
                 return ley_acero_pasivo_endurecida(acero, gamma_s)
+            case _ as diagrama:
+                assert_never(diagrama)
+
+    def _ley_acero_activo(
+        self,
+        acero: AceroPretensado,
+    ) -> LeyTensionDeformacion:
+        """Selecciona el diagrama de cálculo del acero activo."""
+        gamma_s = self.configuracion.coeficientes.gamma_s
+        match self.configuracion.diagrama_acero_activo:
+            case DiagramaAceroActivoELU.BILINEAL:
+                return ley_acero_activo_bilineal(acero, gamma_s)
+            case DiagramaAceroActivoELU.ENDURECIDA:
+                return ley_acero_activo_endurecida(acero, gamma_s)
             case _ as diagrama:
                 assert_never(diagrama)

@@ -66,7 +66,7 @@ aplicación. La composición real y los casos de uso se incorporarán a
 | `numerics/test_newton.py` | Sistemas lineales y no lineales, Jacobiano analítico y numérico, convergencia, estancamiento, máximo de iteraciones, errores y problema parametrizado con λ fijo |
 | `numerics/test_continuacion.py` | Restricciones de arco esférica y cilíndrica, estado, opciones y contratos de trayectoria |
 | `unit/norms/ce/` | Tablas de materiales y coeficientes del Código Estructural |
-| `unit/norms/eurocode/` | Leyes constitutivas del hormigón y del acero |
+| `unit/norms/eurocode/` | Leyes constitutivas del hormigón, del acero pasivo y del acero activo |
 | `unit/application/test_almacen_catalogo.py` | Contrato genérico, identidad por norma, presets protegidos y entradas de usuario |
 
 ## 3. Configuración

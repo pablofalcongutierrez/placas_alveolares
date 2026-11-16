@@ -2,9 +2,12 @@
 
 La tabla recoge los cordones de siete alambres ``S7`` con su carga unitaria
 característica de rotura ``fpk`` y el módulo de elasticidad ``Ep`` habitual.
-Cuando el milestone de pretensado introduzca el resto de propiedades del
-cordón (límite convencional ``fp0,1k``, alargamiento, área), se ampliará el
-tipo del dominio y esta tabla.
+El límite elástico convencional ``fp0,1k`` y el alargamiento ``εuk`` se dejan
+sin fijar porque los valores garantizados del artículo 36.5 del Código
+Estructural son cotas mínimas, no valores característicos de fabricante. La
+ley de cálculo aplica los valores de recurso de EN 1992-1-1, 3.3.6(7):
+``fp0,1k = 0,9·fpk`` y ``εud = 0,02``, mientras no se aporte un dato más
+preciso.
 
 Referencia de cláusula provisional: confirmar las designaciones y su
 articulado contra la versión vigente del Código Estructural.
@@ -28,10 +31,16 @@ class PropiedadesAceroPretensado:
     Attributes:
         fpk: Carga unitaria característica de rotura (MPa).
         ep: Módulo de elasticidad (MPa).
+        fp01k: Límite elástico característico al 0,1 % (MPa), o ``None`` si
+            no se dispone de un valor de fabricante.
+        eps_uk: Alargamiento total característico bajo carga máxima (tanto por
+            uno), o ``None`` si no se dispone de un valor de fabricante.
     """
 
     fpk: float
     ep: float
+    fp01k: float | None = None
+    eps_uk: float | None = None
 
 
 ACEROS_PRETENSADOS_CE: dict[str, PropiedadesAceroPretensado] = {
@@ -67,7 +76,8 @@ def acero_pretensado(nombre: str) -> AceroPretensado:
         nombre: Designación del cordón (p. ej. ``"Y 1860 S7"``).
 
     Returns:
-        El material con ``fpk`` y ``Ep``.
+        El material con ``fpk``, ``Ep`` y, si constan, el alargamiento
+        característico ``εuk`` y el límite convencional ``fp0,1k``.
 
     Raises:
         CasoFueraDeAlcance: Si la designación no figura en la tabla.
@@ -81,4 +91,9 @@ def acero_pretensado(nombre: str) -> AceroPretensado:
             f"{', '.join(ACEROS_PRETENSADOS_CE)}."
         ) from error
 
-    return AceroPretensado(fpk=propiedades.fpk, ep=propiedades.ep)
+    return AceroPretensado(
+        fpk=propiedades.fpk,
+        ep=propiedades.ep,
+        fp01k=propiedades.fp01k,
+        eps_uk=propiedades.eps_uk,
+    )

@@ -13,14 +13,16 @@ from placas_alveolares.norms.errores import CasoFueraDeAlcance
 
 
 @pytest.mark.parametrize("nombre", list(ACEROS_PRETENSADOS_CE))
-def test_cordones_tienen_fpk_y_ep(nombre: str) -> None:
-    """Cada cordón reproduce su fpk y el módulo habitual."""
+def test_cordones_tienen_fpk_ep_y_datos_opcionales(nombre: str) -> None:
+    """Cada cordón reproduce fpk y el módulo y deja los datos finos sin fijar."""
     material = acero_pretensado(nombre)
 
     assert material.fpk == pytest.approx(
         ACEROS_PRETENSADOS_CE[nombre].fpk
     )
     assert material.ep == pytest.approx(195_000.0)
+    assert material.eps_uk is None
+    assert material.fp01k is None
 
 
 @pytest.mark.parametrize(
