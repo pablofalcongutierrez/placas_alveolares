@@ -94,20 +94,42 @@ class AceroArmadura:
 class AceroPretensado:
     """Acero de pretensado (unidades N/mm²).
 
+    ``fp01k`` y ``eps_uk`` son opcionales porque puede trabajarse con un acero
+    del que solo se conocen la carga de rotura y el módulo. En ese caso, la ley
+    normativa aplica los valores de recurso de EN 1992-1-1, 3.3.6(7): ``fp0,1k
+    = 0,9·fpk`` y ``εud = 0,02``.
+
     Attributes:
         fpk: Carga unitaria característica de rotura (MPa).
         ep: Módulo de elasticidad (MPa).
+        fp01k: Límite elástico característico al 0,1 % (MPa), o ``None`` si
+            no se conoce.
+        eps_uk: Alargamiento total característico bajo carga máxima (tanto por
+            uno), o ``None`` si no se conoce.
 
     Raises:
-        MaterialInvalido: Si alguna propiedad no es estrictamente positiva.
+        MaterialInvalido: Si alguna propiedad no es estrictamente positiva o
+            si ``fp01k`` supera a ``fpk``.
     """
 
     fpk: float
     ep: float
+    fp01k: float | None = None
+    eps_uk: float | None = None
 
     def __post_init__(self) -> None:
         _exigir_positivo("fpk", self.fpk)
         _exigir_positivo("ep", self.ep)
+        if self.fp01k is not None:
+            _exigir_positivo("fp01k", self.fp01k)
+            if self.fp01k > self.fpk:
+                raise MaterialInvalido(
+                    "El límite elástico convencional fp0,1k no puede ser "
+                    "mayor que la carga unitaria de rotura fpk; se recibió "
+                    f"fp0,1k = {self.fp01k} MPa y fpk = {self.fpk} MPa."
+                )
+        if self.eps_uk is not None:
+            _exigir_positivo("eps_uk", self.eps_uk)
 
 
 type Material = Hormigon | AceroArmadura | AceroPretensado

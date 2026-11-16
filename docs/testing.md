@@ -68,7 +68,7 @@ aplicación. La composición real y los casos de uso se incorporarán a
 | `test_alineacion_deformaciones.py` | Rotación, línea neutra en `v = 0`, transformación inversa y curvatura nula |
 | `test_campo_tensiones.py` | Plano constitutivo, referencia e influencia del pretensado en la tensión |
 | `unit/norms/ce/` | Tablas de materiales y coeficientes del Código Estructural |
-| `unit/norms/eurocode/` | Leyes constitutivas del hormigón y del acero |
+| `unit/norms/eurocode/` | Leyes constitutivas del hormigón, del acero pasivo y del acero activo |
 | `unit/application/test_almacen_catalogo.py` | Contrato genérico, identidad por norma, presets protegidos y entradas de usuario |
 | `integration/test_visualizacion_tensiones.py` | DTO alineado, fases, huecos, cordones enfundados y perfiles |
 
